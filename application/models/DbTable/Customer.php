@@ -36,12 +36,10 @@
 		public function lastId(){
 			
  			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
- 			$select = $db->select()->from($this->_name);
+ 			$select = $db->select()->from($this->_name)->order('ID DESC');
      		$stmt = $db->query($select);
-     		while ($stmtResult = $stmt->fetch()){
-     			$result = $stmtResult['ID'];
-     		}
-     		return $result;
+     		$res = $stmt->fetch();
+     		return $res['ID'];
 		}
     
 	}
