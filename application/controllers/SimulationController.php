@@ -2,12 +2,12 @@
 require_once realpath(APPLICATION_PATH . '/../library/').'/Simulation.php';
 class SimulationController extends Zend_Controller_Action
 {
-
-	private $_WSDL_URI = "http://corporateSys/simulation?wsdl";
+	private $_WSDL_URI;
 	
     public function init()
     {
-        /* Initialize action controller here */
+		$domain = Zend_Registry::getInstance()->projSettings->settings->domain;
+        $this->_WSDL_URI = "http://{$domain}/simulation?wsdl";
     }
 
  	public function indexAction()

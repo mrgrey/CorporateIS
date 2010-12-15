@@ -22,5 +22,11 @@ $application = new Zend_Application(
     APPLICATION_ENV,
     APPLICATION_PATH . '/configs/application.ini'
 );
+
+
+Zend_Registry::getInstance()->projSettings = new Zend_Config_Ini(
+	APPLICATION_PATH . '/configs/application.ini', APPLICATION_ENV
+);
+
 $application->bootstrap()
             ->run();
