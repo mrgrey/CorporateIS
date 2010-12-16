@@ -14,6 +14,7 @@ class FrontOffice{
 		$date = $this->convertDate($date);
 		$tableCustomer = new Application_Model_DbTable_Customer();
 		$customerId = $tableCustomer->getCustomerId($customer);
+		
 		if (!$customerId){		
 			$customerData = array(
 				'Name'	=> $customer,
@@ -22,21 +23,26 @@ class FrontOffice{
 			$tableCustomer = new Application_Model_DbTable_Customer();
 			$customerId = $tableCustomer->getCustomerId($customer);	
 		}
+		
      	$tableOrder = new Application_Model_DbTable_Order();
      	$orderExTime = $this->getExecutionTime($date, $product1count, $product2count, $product3count);
+		
      	$orderData = array(
      		'CustomerID' 		=> $customerId,
      		'OrderTypeID'		=> 1,
      		'TimeRegistration'	=> $date,
      		'TimeExecution'		=> $orderExTime,
      	);
+		
      	$tableOrder->insert($orderData);
      	$tableOrder = new Application_Model_DbTable_Order();
      	$orderId = $tableOrder->lastOrderId();
+		
      	$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
      	$tableOrderProduct->insertData($orderId, 1, $product1count);
      	$tableOrderProduct->insertData($orderId, 2, $product2count);
      	$tableOrderProduct->insertData($orderId, 3, $product3count);
+		
      	$tblHelp = new Application_Model_DbTable_Helper();
 		$exTime = $orderExTime*864;
 		$startTime = $tblHelp->getStartTime();
@@ -65,13 +71,12 @@ class FrontOffice{
 		$prevOrderX = $prevOrder->current();
 		$prevOrderType = $prevOrderX->findParentRow('Application_Model_DbTable_OrderType');
 		$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
+		
 		$prevOrderPlan = $tableExecutionPlan->getPrevOrderExecutionPlan($previousOrderId)->fetchAll();		
 		$tableProduct = new Application_Model_DbTable_Product();
 		$times = $tableProduct->getRetunningExecutionProductTime();
-		$i = -1; 
-		foreach ($prevOrderPlan as $plan){
-			$i++;
-		}
+		$i = count($prevOrderPlan) - 1; 
+		
 		$prevOrderExTime = $tableExecutionPlan->getOrderProductExecutionTime($prevOrderPlan[$i]['ID']);
 		$lastPlan = $tableExecutionPlan->getLastPlan();
 		$curOrderExTime = $tableExecutionPlan->getOrderProductExecutionTime($lastPlan['ID']);
@@ -84,9 +89,10 @@ class FrontOffice{
 				'Count' 	=> $date - $curOrderExTime
 				);
 			$tableOrderProduct->insert($data);
-			$curOrderExTime = $date;
-			$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+			//TODO should be replaced with lastInsertId
 			$insertedId = $tableOrderProduct->lastOrderProduct();
+			
+			$curOrderExTime = $date;
 			$data = array(
 				'OrderProductID' => 2,
 				'AddOpportunity' => 1
@@ -116,35 +122,35 @@ class FrontOffice{
 					}				
 				}
 				if (!$added){
-					if ($lastPlan['ProductID'] == $id){
-						$curOrderExTime += $productCount * $executionTime;
-					}else{
-						$curOrderExTime += ($productCount * $executionTime+ $times[$id]['RetunningTime']);
-					}
+					$curOrderExTime += $productCount * $executionTime;
+					
+					if ($lastPlan['ProductID'] != $id)
+						$curOrderExTime += $times[$id]['RetunningTime'];
 				}
 			}
 		}
 		
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$lastDelivery = $tableDelivery->getLastDelivery();
-		if ($lastDelivery){
-			$lastPlanExTime = $tableExecutionPlan->getOrderProductExecutionTime($lastPlan['ID']);
-			if ((($lastDelivery['Date'] + 700) > $lastPlanExTime)&&($lastPlanExTime>$date)){
-				$curOrderExTime += $lastDelivery['Date'] + 700 - $lastPlanExTime;
-			}else{
-				$flag = TRUE;
-				$deliveryDate = $lastDelivery['Date'];
-				while ($flag){
-					$deliveryDate += 700;
-					if ($deliveryDate > $date){
-						$curOrderExTime += $deliveryDate - $date;
-						$flag = FALSE;
-					}
+		
+		if (!$lastDelivery)
+			return $curOrderExTime + 1000;
+		
+		$lastPlanExTime = $tableExecutionPlan->getOrderProductExecutionTime($lastPlan['ID']);
+		if ((($lastDelivery['Date'] + 700) > $lastPlanExTime)&&($lastPlanExTime>$date)){
+			$curOrderExTime += $lastDelivery['Date'] + 700 - $lastPlanExTime;
+		}else{
+			$flag = true;
+			$deliveryDate = $lastDelivery['Date'];
+			while ($flag){
+				$deliveryDate += 700;
+				if ($deliveryDate > $date){
+					$curOrderExTime += $deliveryDate - $date;
+					$flag = false;
 				}
 			}
-		}else{
-			$curOrderExTime += 1000;
 		}
+		
 		return $curOrderExTime;
 	}	
 	
@@ -169,43 +175,43 @@ class FrontOffice{
 			$prevOrderPlan = $tableExecutionPlan->getPrevOrderExecutionPlan($previousOrderId)->fetchAll();		
 			$tableProduct = new Application_Model_DbTable_Product();
 			$times = $tableProduct->getRetunningExecutionProductTime();
-			$i = -1; 
-			foreach ($prevOrderPlan as $plan){
-				$i++;
-			}
+			$i = count($prevOrderPlan) - 1; 
+			
 			$prevOrderExTime = $tableExecutionPlan->getOrderProductExecutionTime($prevOrderPlan[$i]['ID']);
 			$lastPlan = $tableExecutionPlan->getLastPlan();
 			$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 			$orderProduct = $tableOrderProduct->getOrderProductByOrderId($orderId)->fetchAll();
 			foreach ($orderProduct as $product){
-				$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
 				$prevOrderPlan = $tableExecutionPlan->getPrevOrderExecutionPlan($previousOrderId)->fetchAll();
-				$added = FALSE;
+				$added = false;
 				if (($prevOrderExTime + $product['Count']*$times[$product['ProductID']]['ExecutionTime']) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
+				
 					foreach ($prevOrderPlan as $plan){
-						if ($plan['ProductID'] == $product['ProductID']){
-							if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
-								$data = array(
-									'OrderProductID' => $product['ID'],
-									'AddOpportunity' => 1
-									);
-								$tableExecutionPlan->insertIntoPlan($plan['ID'] + 1, $data);
-								$added = TRUE;
-							}
+						if ($plan['ProductID'] != $product['ProductID'])
+							continue;
+							
+						if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
+							$data = array(
+								'OrderProductID' => $product['ID'],
+								'AddOpportunity' => 1
+								);
+							$tableExecutionPlan->insertIntoPlan($plan['ID'] + 1, $data);
+							$added = true;
 						}
 					}				
 				}
-				if (!$added){
-					if ($lastPlan['ProductID'] == $product['ProductID']){
-						$data = array(
-							'OrderProductID' => $product['ID'],
-							'AddOpportunity' => 0
-							);
-						$tableExecutionPlan->insert($data);
-					}else{
-						$notAdded[$product['ID']] = array('OrderProductID' => $product['ID']);
-					}
+				if ($added)
+					continue;
+					
+				if ($lastPlan['ProductID'] == $product['ProductID']){
+					$tableExecutionPlan->insert(array(
+						'OrderProductID' => $product['ID'],
+						'AddOpportunity' => 0
+					));
+				}else{
+					$notAdded[$product['ID']] = array('OrderProductID' => $product['ID']);
 				}
+				
 			}
 			foreach ($notAdded as $add){
 				$data = array(
@@ -216,7 +222,7 @@ class FrontOffice{
 			}
 		}		
 		$tableOrder->updateOrderType($orderId, $orderType);
-		return TRUE;
+		return true;
 	}
 	
 	/**
@@ -258,7 +264,6 @@ class FrontOffice{
      		'TimeExecution'		=> $exTime,
      	);		
 		$tableOrder->insert($orderData);
-		$tableOrder = new Application_Model_DbTable_Order();
 		$fakeOrderId = $tableOrder->lastOrderId(); 
 		for ($i = 0; $i < 3; $i++){			
 			if ($products[$i] > 0){
@@ -282,7 +287,7 @@ class FrontOffice{
 		$where['ID = ?'] = $fakeOrderId;
 		$tableOrder->delete($where); 
 		
-		return TRUE;
+		return true;
 	}
 	
 	/**
@@ -294,23 +299,26 @@ class FrontOffice{
 	 */
 	public function cancelOrder($date, $orderId){
 		$date = $this->convertDate($date);
+		
 		$tableEP = new Application_Model_DbTable_ExecutionPlan();
+		
 		$ordPlans = $tableEP->getPrevOrderExecutionPlan($orderId);
 		$plans = $ordPlans->fetchAll();
 		$startTime = $tableEP->getPlanStartTime($plans[0]['ID']);
-		if ($startTime > $date){
-			$tableOrder = new Application_Model_DbTable_Order();
-			$where['ID = ?'] = $orderId;
-			$data = array('OrderTypeID' => 1);
-			$tableOrder->update($data, $where);
-			foreach ($plans as $plan){
-				$where['ID = ?'] = $plan['ID'];
-				$tableEP->delete($where);
-			}
-			return TRUE;			
-		}else{
-			return FALSE;
+		
+		if ($startTime <= $date)
+			return false;
+			
+		$tableOrder = new Application_Model_DbTable_Order();
+		$where['ID = ?'] = $orderId;
+		$data = array('OrderTypeID' => 1);
+		$tableOrder->update($data, $where);
+		foreach ($plans as $plan){
+			$where['ID = ?'] = $plan['ID'];
+			$tableEP->delete($where);
 		}
+		
+		return true;			
 	}
 	
 	/**
@@ -321,10 +329,11 @@ class FrontOffice{
 	 */
 	private function convertDate($date){
 		$tstmp = strtotime($date);
+		
 		$tblHelp = new Application_Model_DbTable_Helper();
 		$startTime = $tblHelp->getStartTime();
-		$time = $tstmp - $startTime;
-		$time = $time/864;
+		
+		$time = ($tstmp - $startTime)/864;
 		return $time;		
 	}
 	
@@ -334,28 +343,28 @@ class FrontOffice{
 	 * @return bool 
 	 */
 	public function test($id){
-		
-		
 		$date = $this->convertDate('2010-01-29 00:00:00');
+		
 		$tableEP = new Application_Model_DbTable_ExecutionPlan();
-		$ordPlans = $tableEP->getPrevOrderExecutionPlan($id);
-		$plans = $ordPlans->fetchAll();
+		
+		$plans = $tableEP->getPrevOrderExecutionPlan($id)->fetchAll();
+		
 		$startTime = $tableEP->getPlanStartTime($plans[0]['ID']);
-		if ($startTime > $date){
-			$tableOrder = new Application_Model_DbTable_Order();
-			$where['ID = ?'] = $id;
-			$data = array('OrderTypeID' => 1);
-			$tableOrder->update($data, $where);
-			foreach ($plans as $plan){
-				$where['ID = ?'] = $plan['ID'];
-				$tableEP->delete($where);
-			}
-			return TRUE;
-		}else{
+		
+		if ($startTime <= $date)
 			return 0;
+			
+		$tableOrder = new Application_Model_DbTable_Order();
+		
+		$where['ID = ?'] = $id;
+		$data = array('OrderTypeID' => 1);
+		$tableOrder->update($data, $where);
+		
+		foreach ($plans as $plan){
+			$where['ID = ?'] = $plan['ID'];
+			$tableEP->delete($where);
 		}
-       	
-	}
-	
-	
+		
+		return true;
+	}	
 }
