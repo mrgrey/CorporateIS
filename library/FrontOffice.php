@@ -93,66 +93,38 @@ class FrontOffice{
 				);
 			$tableExecutionPlan->insert($data);
 		}
-		if ($product1count > 0){
-			$added = FALSE;
-			if (($prevOrderExTime + $product1count*$times[1]['ExecutionTime']) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
-				foreach ($prevOrderPlan as $plan){
-					if ($plan['ProductID'] == 1){
-						if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
-							$curOrderExTime += $product1count * $times[1]['ExecutionTime'];
-							$added = TRUE;
+		
+		$productCounts = array(
+			1 => $product1count,
+			2 => $product2count,
+			3 => $product3count
+		);
+		
+		foreach($productCounts as $id => $productCount) {
+			if ($productCount > 0){
+				$executionTime = $times[$id]['ExecutionTime'];
+				
+				$added = false;
+				if (($prevOrderExTime + $productCount * $executionTime) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
+					foreach ($prevOrderPlan as $plan){
+						if ($plan['ProductID'] == $id){
+							if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
+								$curOrderExTime += $productCount * $executionTime;
+								$added = true;
+							}
 						}
-					}
-				}				
-			}
-			if (!$added){
-				if ($lastPlan['ProductID'] == 1){
-					$curOrderExTime += $product1count * $times[1]['ExecutionTime'];
-				}else{
-					$curOrderExTime += (($product1count * $times[1]['ExecutionTime'])+ $times[1]['RetunningTime']);
+					}				
 				}
-			}
-		}	
-		if ($product2count > 0){
-			$added = FALSE;
-			if (($prevOrderExTime + $product2count*$times[2]['ExecutionTime']) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
-				foreach ($prevOrderPlan as $plan){
-					if ($plan['ProductID'] == 2){
-						if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
-							$curOrderExTime += $product2count * $times[2]['ExecutionTime'];
-							$added = TRUE;
-						}
+				if (!$added){
+					if ($lastPlan['ProductID'] == $id){
+						$curOrderExTime += $productCount * $executionTime;
+					}else{
+						$curOrderExTime += ($productCount * $executionTime+ $times[$id]['RetunningTime']);
 					}
-				}				
-			}
-			if (!$added){
-				if ($lastPlan['ProductID'] == 2){
-					$curOrderExTime += $product2count * $times[2]['ExecutionTime'];
-				}else{
-					$curOrderExTime += (($product2count * $times[2]['ExecutionTime'])+ $times[2]['RetunningTime']);
 				}
 			}
 		}
-		if ($product3count > 0){
-			$added = FALSE;
-			if (($prevOrderExTime + $product3count*$times[3]['ExecutionTime']) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
-				foreach ($prevOrderPlan as $plan){
-					if ($plan['ProductID'] == 3){
-						if (($tableExecutionPlan->getOrderProductExecutionTime($plan['ID']) > $date)&&($plan['AddOpportunity'] == 0)){
-							$curOrderExTime += $product3count * $times[3]['ExecutionTime'];
-							$added = TRUE;
-						}
-					}
-				}				
-			}
-			if (!$added){
-				if ($lastPlan['ProductID'] == 3){
-					$curOrderExTime += $product3count * $times[3]['ExecutionTime'];
-				}else{
-					$curOrderExTime += (($product3count * $times[3]['ExecutionTime'])+ $times[3]['RetunningTime']);
-				}
-			}
-		}
+		
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$lastDelivery = $tableDelivery->getLastDelivery();
 		if ($lastDelivery){
