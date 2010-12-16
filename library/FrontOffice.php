@@ -35,7 +35,6 @@ class FrontOffice{
      	);
 		
      	$tableOrder->insert($orderData);
-     	$tableOrder = new Application_Model_DbTable_Order();
      	$orderId = $tableOrder->lastOrderId();
 		
      	$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
@@ -162,27 +161,31 @@ class FrontOffice{
 	 * @param int $orderType
 	 * @return bool
 	 */
-	public function confirmOrder($date ,$orderId, $orderType){
-		$date = $this->convertDate($date);
+	public function confirmOrder($date ,$orderId, $orderType){		
 		$tableOrder = new Application_Model_DbTable_Order();
 		if ($orderType > 1){
-			$tableOrder = new Application_Model_DbTable_Order();
+			$date = $this->convertDate($date);
 			$previousOrderId = $tableOrder->lastAcceptedOrderId();
 			$prevOrder = $tableOrder->getOrder($previousOrderId);
 			$prevOrderX = $prevOrder->current();
 			$prevOrderType = $prevOrderX->findParentRow('Application_Model_DbTable_OrderType', 'OrderType');
+			
 			$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
 			$prevOrderPlan = $tableExecutionPlan->getPrevOrderExecutionPlan($previousOrderId)->fetchAll();		
+			
 			$tableProduct = new Application_Model_DbTable_Product();
 			$times = $tableProduct->getRetunningExecutionProductTime();
+			
 			$i = count($prevOrderPlan) - 1; 
 			
 			$prevOrderExTime = $tableExecutionPlan->getOrderProductExecutionTime($prevOrderPlan[$i]['ID']);
 			$lastPlan = $tableExecutionPlan->getLastPlan();
 			$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 			$orderProduct = $tableOrderProduct->getOrderProductByOrderId($orderId)->fetchAll();
+			
 			foreach ($orderProduct as $product){
 				$prevOrderPlan = $tableExecutionPlan->getPrevOrderExecutionPlan($previousOrderId)->fetchAll();
+				
 				$added = false;
 				if (($prevOrderExTime + $product['Count']*$times[$product['ProductID']]['ExecutionTime']) < ($prevOrder[0]['TimeExecution'] + $prevOrderType['Days'])){
 				
@@ -200,24 +203,22 @@ class FrontOffice{
 						}
 					}				
 				}
-				if ($added)
-					continue;
-					
-				if ($lastPlan['ProductID'] == $product['ProductID']){
-					$tableExecutionPlan->insert(array(
-						'OrderProductID' => $product['ID'],
-						'AddOpportunity' => 0
-					));
-				}else{
-					$notAdded[$product['ID']] = array('OrderProductID' => $product['ID']);
-				}
 				
+				if (!$added) {				
+					if ($lastPlan['ProductID'] == $product['ProductID']){
+						$tableExecutionPlan->insert(array(
+							'OrderProductID' => $product['ID'],
+							'AddOpportunity' => 0
+						));
+					}else
+						$notAdded[$product['ID']] = array('OrderProductID' => $product['ID']);
+				}				
 			}
 			foreach ($notAdded as $add){
 				$data = array(
-							'OrderProductID' => $add['OrderProductID'],
-							'AddOpportunity' => 0
-							);
+					'OrderProductID' => $add['OrderProductID'],
+					'AddOpportunity' => 0
+					);
 				$tableExecutionPlan->insert($data);			
 			}
 		}		
@@ -234,13 +235,22 @@ class FrontOffice{
 	 * @return string
 	 */
 	public function changeOrder($date, $orderId, $products){
-		$date = $this->convertDate($date);
-		$exTime = $this->getExecutionTime($date, $products[0], $products[1], $products[2]);
+	
+		$exTime = $this->getExecutionTime(
+			$this->convertDate($date), 
+			$products[0], 
+			$products[1], 
+			$products[2]
+		);
+		
 		$tblHelp = new Application_Model_DbTable_Helper();
-		$exTime = $exTime*864;
+		
 		$startTime = $tblHelp->getStartTime();
-		$exTime = $exTime + $startTime;
+		
+		$exTime = $exTime * 864 + $startTime;
+		
 		$time = date('Y-m-d H:i:s', $exTime);
+		
 		return $time;
 	}
 	
@@ -257,28 +267,34 @@ class FrontOffice{
 		$tableOrdProd = new Application_Model_DbTable_OrderProduct();
 		$exTime = $this->getExecutionTime($date, $products[1], $products[2], $products[3]);
 		$tableOrder = new Application_Model_DbTable_Order();
+		
 		$orderData = array(
      		'CustomerID' 		=> 1,
      		'OrderTypeID'		=> 1,
      		'TimeRegistration'	=> $date,
      		'TimeExecution'		=> $exTime,
      	);		
+		
 		$tableOrder->insert($orderData);
+		
 		$fakeOrderId = $tableOrder->lastOrderId(); 
+		
 		for ($i = 0; $i < 3; $i++){			
-			if ($products[$i] > 0){
-				$data = array(
-					'OrderID'	=> $fakeOrderId,
-					'ProductID' => $i+1,
-					'Count'		=> $products[$i],
-					'RealCount'	=> 0
-					);
-				$tableOrdProd->insert($data);
-			}
+			if ($products[$i] <= 0)
+				continue;
+				
+			$tableOrdProd->insert(array(
+				'OrderID'	=> $fakeOrderId,
+				'ProductID' => $i+1,
+				'Count'		=> $products[$i],
+				'RealCount'	=> 0
+			));
 		}
+		
 		$this->confirmOrder($date, $fakeOrderId, 2);
-		$tableOrdProd = new Application_Model_DbTable_OrderProduct();
+		
 		$orderProducts = $tableOrdProd->getOrderProductByOrderId($fakeOrderId)->fetchAll();
+		
 		foreach ($orderProducts as $op){
 			$data = array('OrderId' => $orderId);
 			$where['ID = ?'] = $op['ID'];
