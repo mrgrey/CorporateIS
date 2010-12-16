@@ -23,5 +23,12 @@
 			$res = $stmt->fetch();
 			return $res['Count']; 
 		}
+		
+		public function setEmpty(){
+			$data = array('Count' => 0);
+			$where['ID > ?'] = 0;
+			$this->update($data, $where);
+		}
+		
     
 	}
