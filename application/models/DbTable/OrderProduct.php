@@ -30,11 +30,12 @@
 	     				'Date'		=> $status, //-1 означает, что заказ еще не принят на исполнение; 0 - что уже принят, но еще не выполнялся
 			    		'Count'		=> $products[$i],
 			    		'Modifier'  => 0
-	     				);
+	     			);
+					
 	     			$this->insert($data);
 	     		}
 	     	}
-	     	return TRUE;
+	     	return true;
 	    }
 	    
 		/**
@@ -45,9 +46,11 @@
 		 */
 		public function setOrderStatus($orderId, $orderType){
 			$where['OrderID = ?'] = $orderId;
-			$data = array('Date' => $orderType); 
-			$res = $this->update($data, $where);
-			return $res;
+			$data = array(
+				'Date' => $orderType
+			); 
+			
+			return $this->update($data, $where);
 		}
 		
 		/**
@@ -58,15 +61,11 @@
 		public function isOrderStarted($orderId){
 			$select = $this->select()
 				->where('OrderID = ?', $orderId)
-				->where('Date > 0')
-				;
+				->where('Date > 0');
+				
 			$stmt = $this->fetchAll($select);
-			$rowCount = count($stmt);
-			if ($rowCount > 0){
-				return TRUE;
-			}else{
-				return FALSE;
-			}
+
+			return count($stmt) > 0;
 		}
 		
 		/**
@@ -75,61 +74,12 @@
 		 * @param int $orderId
 		 */
 		public function getOrderProductByOrderId($orderId){
-			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
+			$db = $this->getDefaultAdapter();
 			$select = $db->select()
 				->from($this->_name)
 				->where('OrderID = ?', $orderId)
-				->order('ProductID')
-				;
-			$stmt = $db->query($select);
-			return $stmt;
+				->order('ProductID');
+
+			return $db->query($select);
 		}
-		
-	    /*
-	    /**
-	     * 
-	     * INSERT
-	     * @param int $orderId
-	     * @param int $productId
-	     * @param int $count
-	     *
-	    public function insertData($orderId, $productId, $count){
-	    	if ($count > 0){
-		    	$data = array(
-		    		'OrderID' => $orderId,
-		    		'ProductID' => $productId,
-		    		'Count' => $count,
-		    		'RealCount' => $count
-		    	);
-		    	$this->insert($data);
-	    	}
-	    }
-		
-	    /**
-	     * 
-	     * Get Order Product By Id
-	     * @param unknown_type $orderProductId
-	     *
-		public function getOrderProduct($orderProductId){
-			$select = $this->select()->where('ID = ?', $orderProductId);
-			$result = $this->fetchRow($select);
-			return $result;
-		}	
-    
-		
-		
-		/**
-		 * 
-		 * Получение последненго добавленного OrderProduct
-		 *
-		public function lastOrderProduct(){
-			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
-			$select = $db->select()
-				->from($this->_name)
-				->order('ID DESC');
-			$stmt = $db->query($select);
-			$result = $stmt->fetch();
-			return $result;
-		}
-		*/
 	}

@@ -122,7 +122,8 @@ class FrontOffice{
 			1 => $products[0],
 			2 => $products[1],
 			3 => $products[2]
-			);
+		);
+		
 		//Получаем время выполнения
 		$exTime = $this->getExecutionTime($date, $product);
 		

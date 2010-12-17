@@ -16,11 +16,11 @@
 	    );
 			
     	public function getRequiments(){
-    		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
-    		$select = $db->select()->from($this->_name);
+    		$db = $this->getDefaultAdapter();
+			
+    		$select = $db->select()->from($this->_name);		
     		$stmt = $db->query($select);
-    		$result = $stmt->fetchAll();
-    		return $result;
+			
+    		return $stmt->fetchAll();
     	}
-	    
 	}

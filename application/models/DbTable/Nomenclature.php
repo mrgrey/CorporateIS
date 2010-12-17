@@ -33,14 +33,17 @@
     		$select = $db->select()
     			->from($this->_name)
     			->where('DeliveryID = ?', $deliveryId)
-    			->where('RawID = ?', $rawId)
-    			;
+    			->where('RawID = ?', $rawId);
+				
     		$stmt = $db->query($select);
     		$res = $stmt->fetch();
+			
     		$where['ID = ?'] = $res['ID'];
-    		$data = array('RealCount' => $count);
+    		$data = array(
+				'RealCount' => $count
+			);
+			
     		$db->update($this->_name, $data, $where);		
     	}
-    	
 	}
 	

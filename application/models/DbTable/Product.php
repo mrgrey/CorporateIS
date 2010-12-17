@@ -10,12 +10,19 @@
 		 *
 		 */
 		public function getRetunningExecutionProductTime(){
-			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
+			$db = $this->getDefaultAdapter();
+			
 			$select = $db->select()->from($this->_name);
+			
 			$stmt = $db->query($select);
+			
 			while ($row = $stmt->fetch()){
-				$result[$row['ID']] = array('ExecutionTime' => $row['ExecutionTime'], 'RetunningTime' => $row['RetunningTime']);				
+				$result[$row['ID']] = array(
+					'ExecutionTime' => $row['ExecutionTime'], 
+					'RetunningTime' => $row['RetunningTime']
+				);				
 			}
+			
 			return $result;
 		}
 		

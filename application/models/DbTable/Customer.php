@@ -10,8 +10,10 @@
 		 */
 		public function getCustomerId($name){
 			$select = $this->select()
-		   		->where('Name=?', $name);			
+						   ->where('Name=?', $name);			
+						   
 			$result = $this->fetchRow($select);
+			
 			return $result['ID'];
 		}
 		
@@ -19,36 +21,8 @@
 			$customerData = array(
 				'Name'	=> $customer,
 			);
+			
 			//клевая штука, не знал, что инсерт что-то возвращает
-			$result = $tableCustomer->insert($customerData);
-			return $result;
+			return $tableCustomer->insert($customerData);
 		}
-		
-		
-		/*
-		 * 
-		 * Get Customer Id by Name
-		 * @param unknown_type $id
-		 *
-		public function getCustomerName($id){
-			$select = $this->select()
-		   		->where('id=?', $id);
-			
-			$result = $this->fetchRow($select);
-			return $result['Name'];
-		}
-	
-		/**
-		 * 
-		 * Get Last Customer Id
-		 *
-		public function lastId(){
-			
- 			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
- 			$select = $db->select()->from($this->_name)->order('ID DESC');
-     		$stmt = $db->query($select);
-     		$res = $stmt->fetch();
-     		return $res['ID'];
-		}
-    	*/
 	}
