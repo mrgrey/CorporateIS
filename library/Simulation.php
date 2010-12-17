@@ -18,7 +18,7 @@ class Simulation{
 		);
 		
 		foreach($tables as $table) 
-			$db->exec("TRUNCATE TABLE {$table}");
+			$db->exec("TRUNCATE TABLE `{$table}`");
 			
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->setEmpty();		
@@ -90,6 +90,8 @@ class Simulation{
 			if ($exTime > $date){
 				$orderProduct = $tableOrderProduct->getOrderProduct($row['OrderProductID']);
 				$prevOrderProduct = $tableOrderProduct->getOrderProduct($prevPlan['OrderProductID']);
+				
+				
 				$retunningTime = $times[$orderProduct['ProductID']]['RetunningTime'];
 				
 				if ($prevOrderProduct['ProductID'] == 4){
@@ -101,6 +103,16 @@ class Simulation{
 				if ($orderProduct['ProductID'] == 4){
 					$retunningTime = 0;
 				}			
+				
+				/* TODO 
+				 * Why you use $times[$orderProduct['ProductID']]['RetunningTime'] instead of updated $retunningTime?
+				 * Looks like a bug.
+				 *
+				 * ÇþÛþ If it's important to use old value of $retunningTime:
+				 *   - this code should be moved to line 96
+				 *   - $times[$orderProduct['ProductID']]['RetunningTime'] should be replaced with $retunningTime
+				 */
+				 
 				if (!($rT))
 					$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
 					
