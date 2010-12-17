@@ -423,46 +423,7 @@ private function getListOfProducts($date, $time){
 
 	
 	
-	/**
-	 * 
-	 * Получение состояния заказа
-	 * @param string $date
-	 * @param int $orderId
-	 * @return mixed
-	 */
-	public function getOrderStatus($date, $orderId){
-		$date = $this->convertDate($date);
-		$tableEP = new Application_Model_DbTable_ExecutionPlan();		
-		$orderProducts = $tableEP->getPrevOrderExecutionPlan($orderId)->fetchAll();
-		$result1 = array(
-			1 => 0,
-			2 => 0,
-			3 => 0
-			);
-			
-		$result2 = array(
-			1 => 0,
-			2 => 0,
-			3 => 0
-			);		
-		var_dump($orderProducts);
-		foreach ($orderProducts as $orderProduct){			
-			$result2[$orderProduct['ProductID']] += $orderProduct['RealCount'];
-			$exTime = $tableEP->getOrderProductExecutionTime($orderProduct['OrderProductID']);
-			if ($exTime < date){
-				$result1[$orderProduct['ProductID']] += $orderProduct['Count'];
-				$result1[$orderProduct['ProductID']] += $orderProduct['RealCount'] - $orderProduct['Count'];
-			}else{
-				$startTime = $tableEP->getPlanStartTime($orderProduct['ID']);
-				if ($startTime < $date){
-					$count = $this->getListOfProducts($startTime, $date - $startTime);
-					$result1[$orderProduct['ProductID']] += $count[$orderProduct['ProductID']];
-					$result1[$orderProduct['ProductID']] += $orderProduct['RealCount'] - $orderProduct['Count'];
-					$bagTrace = array('start' => $startTime, 'date' => $date);				}
-			}
-		}
-		return array ('Done' => $result1, 'Total' => $result2); 
-	}
+	
 	
 	/**
 	 * 

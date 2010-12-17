@@ -14,8 +14,7 @@
 			$select = $db->select()->from($this->_name);
 			$stmt = $db->query($select);
 			while ($row = $stmt->fetch()){
-				$result[$row['ID']] = array('ExecutionTime' => $row['ExecutionTime'], 'RetunningTime' => $row['RetunningTime']);
-				
+				$result[$row['ID']] = array('ExecutionTime' => $row['ExecutionTime'], 'RetunningTime' => $row['RetunningTime']);				
 			}
 			return $result;
 		}

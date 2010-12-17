@@ -17,34 +17,58 @@
 	    
 	    /**
 	     * 
-	     * INSERT
+	     * ƒобавл€ет новые блоки заказа
 	     * @param int $orderId
-	     * @param int $productId
-	     * @param int $count
+	     * @param mixed $products
 	     */
-	    public function insertData($orderId, $productId, $count){
-	    	if ($count > 0){
-		    	$data = array(
-		    		'OrderID' => $orderId,
-		    		'ProductID' => $productId,
-		    		'Count' => $count,
-		    		'RealCount' => $count
-		    	);
-		    	$this->insert($data);
-	    	}
+	    public function newOrderProducts($orderId, $products, $status){
+		    for ($i = 1; $i < 4; $i++){
+	     		if ($products[$i] > 0){
+	     			$data = array(
+	     				'OrderID' 	=> $orderId,
+			    		'ProductID' => $i,
+	     				'Date'		=> $status, //-1 означает, что заказ еще не прин€т на исполнение; 0 - что уже прин€т, но еще не выполн€лс€
+			    		'Count'		=> $products[$i],
+			    		'Modifier'  => 0
+	     				);
+	     			$this->insert($data);
+	     		}
+	     	}
+	     	return TRUE;
 	    }
+	    
+		/**
+		 * 
+		 * ћен€ет статус заказа
+		 * @param int $orderId
+		 * @param int $orderType
+		 */
+		public function setOrderStatus($orderId, $orderType){
+			$where['OrderID = ?'] = $orderId;
+			$data = array('Date' => $orderType); 
+			$res = $this->update($data, $where);
+			return $res;
+		}
 		
-	    /**
-	     * 
-	     * Get Order Product By Id
-	     * @param unknown_type $orderProductId
-	     */
-		public function getOrderProduct($orderProductId){
-			$select = $this->select()->where('ID = ?', $orderProductId);
-			$result = $this->fetchRow($select);
-			return $result;
-		}	
-    
+		/**
+		 * 
+		 * ѕровер€ет начал ли выполн€тьс€ заказ
+		 * @param unknown_type $orderId
+		 */
+		public function isOrderStarted($orderId){
+			$select = $this->select()
+				->where('OrderID = ?', $orderId)
+				->where('Date > 0')
+				;
+			$stmt = $this->fetchAll($select);
+			$rowCount = count($stmt);
+			if ($rowCount > 0){
+				return TRUE;
+			}else{
+				return FALSE;
+			}
+		}
+		
 		/**
 		 * 
 		 * ѕолучение всех товаров заказа
@@ -61,10 +85,43 @@
 			return $stmt;
 		}
 		
+	    /*
+	    /**
+	     * 
+	     * INSERT
+	     * @param int $orderId
+	     * @param int $productId
+	     * @param int $count
+	     *
+	    public function insertData($orderId, $productId, $count){
+	    	if ($count > 0){
+		    	$data = array(
+		    		'OrderID' => $orderId,
+		    		'ProductID' => $productId,
+		    		'Count' => $count,
+		    		'RealCount' => $count
+		    	);
+		    	$this->insert($data);
+	    	}
+	    }
+		
+	    /**
+	     * 
+	     * Get Order Product By Id
+	     * @param unknown_type $orderProductId
+	     *
+		public function getOrderProduct($orderProductId){
+			$select = $this->select()->where('ID = ?', $orderProductId);
+			$result = $this->fetchRow($select);
+			return $result;
+		}	
+    
+		
+		
 		/**
 		 * 
 		 * ѕолучение последненго добавленного OrderProduct
-		 */
+		 *
 		public function lastOrderProduct(){
 			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
 			$select = $db->select()
@@ -74,5 +131,5 @@
 			$result = $stmt->fetch();
 			return $result;
 		}
-		
+		*/
 	}
