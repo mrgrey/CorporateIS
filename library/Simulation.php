@@ -9,7 +9,6 @@ class Simulation{
 	public function niceStart($date){ //$date не используется, но оставляю, чтобы не было проблем с интеграцией
 		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
 		
-		$db->exec('TRUNCATE TABLE ExecutionPlan');
 		$db->exec('TRUNCATE TABLE OrderProduct');		
 		$db->exec('TRUNCATE TABLE Order');			
 		$db->exec('TRUNCATE TABLE Nomenclature');
