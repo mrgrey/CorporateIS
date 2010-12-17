@@ -9,12 +9,17 @@ class Simulation{
 	public function niceStart($date){ //$date не используется, но оставляю, чтобы не было проблем с интеграцией
 		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
 		
-		$db->exec('TRUNCATE TABLE OrderProduct');		
-		$db->exec('TRUNCATE TABLE Order');			
-		$db->exec('TRUNCATE TABLE Nomenclature');
-		$db->exec('TRUNCATE TABLE Delivery');				
-		$db->exec('TRUNCATE TABLE Customer');
+		$tables = array(
+			'OrderProduct',
+			'Order',
+			'Nomenclature',
+			'Delivery',
+			'Customer'
+		);
 		
+		foreach($tables as $table) 
+			$db->exec("TRUNCATE TABLE {$table}");
+			
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->setEmpty();		
 		
@@ -39,93 +44,44 @@ class Simulation{
 	
 	/**
 	 * 
-	 * Получение кол-ва товаров в плане начинаю с date до date+time
+	 * Получение кол-ва товаров в плане начиная с date до date+time
 	 * @param int $date
 	 * @param int $time
 	 * @return mixed
 	 */
 	private function getListOfProducts($date, $time){		
-		$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
-		$plan = $tableExecutionPlan->getExecutionPlan();
-		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
-		$tableProduct = new Application_Model_DbTable_Product();
-		$times = $tableProduct->getRetunningExecutionProductTime(); 
-		$prevExTime = 0;
-		$result = array(
-			1 => 0,
-			2 => 0,
-			3 => 0,
-			4 => 0
-		);
+		$rawResult = $this->getListOfProductsWithOrderId($date, $time);
+		$result = array();
+		
+		foreach($rawResult as $item) {
+			$productId = $item['productId'];
 			
-		while ($row = $plan->fetch()){
-			$exTime = $tableExecutionPlan->getOrderProductExecutionTime($row['OrderProductID']);
-			
-			if ($exTime > $date){
-				$orderProduct = $tableOrderProduct->getOrderProduct($row['OrderProductID']);
-				$prevOrderProduct = $tableOrderProduct->getOrderProduct($prevPlan['OrderProductID']);
-				$retunningTime = $times[$orderProduct['ProductID']]['RetunningTime'];
+			//TODO review this line please.
+			//TODO don't know if productId can duplicate
+			if(!isset($result[$productId]))
+				$result[$productId] = 0;
 				
-				if ($prevOrderProduct['ProductID'] == 4){
-					$retunningTime = 0;
-				}
-				if ($prevOrderProduct['ProductID'] == $orderProduct['ProductID']){
-					$retunningTime = 0;
-				}	
-				if ($orderProduct['ProductID'] == 4){
-					$retunningTime = 0;
-				}			
-				
-				if (!($rT))
-					$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
-				
-				if ($prevExTime + $rT < $date){
-					$finPlanTime = $date - $prevExTime - $retunningTime; 
-					$mod = ($exTime - $date - $finPlanTime) % $times[$orderProduct['ProductID']]['ExecutionTime'];
-					$res = (($exTime - $date - $finPlanTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime']);
-					
-					if ($mod <> 0)
-						$res++;
-				}else{
-					$planTime = $exTime - $prevExTime - $retunningTime;
-					$res = $planTime / $times[$orderProduct['ProductID']]['ExecutionTime'];
-				}		
-				
-				$res = 1;
-				if ($exTime > $date + $time){
-					$overTime = $exTime - $date - $time;
-					$mod = $overTime % $times[$orderProduct['ProductID']]['ExecutionTime'];
-					$overProduct = ($overTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime'];
-					//if ($mod <> 0) $overProduct++;
-					$res -= $overProduct; 
-				}			
-				
-				$result[$orderProduct['ProductID']] += $res;
-			}
-			
-			if ($exTime + $rT> $date + $time)
-				break;
-			
-			$prevExTime = $exTime;
-			$prevPlan = $row;			
-			$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
+			$result[$productId] += $item['count'];
 		}
+		
 		return $result;
 	}
 	
 	/**
 	 * 
-	 * Получение кол-ва товаров в плане начинаю с date до date+time
+	 * Получение кол-ва товаров в плане начиная с date до date+time
 	 * @param int $date
 	 * @param int $time
 	 * @return mixed
 	 */
 	private function getListOfProductsWithOrderId($date, $time){		
 		$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
-		$plan = $tableExecutionPlan->getExecutionPlan();
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 		$tableProduct = new Application_Model_DbTable_Product();
+		
+		$plan = $tableExecutionPlan->getExecutionPlan();
 		$times = $tableProduct->getRetunningExecutionProductTime(); 
+		
 		$prevExTime = 0; 
 		
 		while ($row = $plan->fetch()){
@@ -152,18 +108,21 @@ class Simulation{
 					$finPlanTime = $date - $prevExTime - $retunningTime; 
 					$mod = ($exTime - $date - $finPlanTime) % $times[$orderProduct['ProductID']]['ExecutionTime'];
 					$res = (($exTime - $date - $finPlanTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime']);
-					if ($mod <> 0) $res++;
+					
+					if ($mod <> 0)
+						$res++;
 				}else{
 					$planTime = $exTime - $prevExTime - $retunningTime;
 					$res = $planTime / $times[$orderProduct['ProductID']]['ExecutionTime'];
 				}		
 				
+				$res = 1; //TODO review this line please
 				if ($exTime > $date + $time){
 					$overTime = $exTime - $date - $time;
 					$mod = $overTime % $times[$orderProduct['ProductID']]['ExecutionTime'];
 					$overProduct = ($overTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime'];
-					//if ($mod <> 0) $overProduct++;
-					$res = $res - $overProduct; 
+					
+					$res -= $overProduct; 
 				}			
 				
 				$result[] = array(
