@@ -108,7 +108,7 @@ class Simulation{
 				 * Why you use $times[$orderProduct['ProductID']]['RetunningTime'] instead of updated $retunningTime?
 				 * Looks like a bug.
 				 *
-				 * ÇşÛş If it's important to use old value of $retunningTime:
+				 * P.S. If it's important to use old value of $retunningTime:
 				 *   - this code should be moved to line 96
 				 *   - $times[$orderProduct['ProductID']]['RetunningTime'] should be replaced with $retunningTime
 				 */
@@ -143,6 +143,7 @@ class Simulation{
 					'count' => $res
 				);
 			}
+			
 			if ($exTime  + $rT > $date + $time)
 				break;
 				

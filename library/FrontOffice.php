@@ -43,7 +43,7 @@ class FrontOffice{
      	return array(
      		'OrderId' 			=> $orderId, 
      		'ExecutionTime'		=> $orderExTime
-     		);     	
+		);     	
 	}
 	
 	private function getExecutionTime($date, $products){	
@@ -95,14 +95,16 @@ class FrontOffice{
 	 * @return string
 	 */
 	public function changeOrder($date, $orderId, $products){
-		$date = strtotime($date);
 		$product = array(
 			1 => $products[0],
 			2 => $products[1],
 			3 => $products[2]
-			);
-		$exTime = $this->getExecutionTime($date, $product);		
+		);
+		
+		$exTime = $this->getExecutionTime(strtotime($date), $product);		
+		
 		$time = date('Y-m-d H:i:s', $exTime);
+		
 		return $time;
 	}
 	
@@ -145,16 +147,16 @@ class FrontOffice{
 	public function cancelOrder($date, $orderId){
 		//Проверяем заказ на старт выполнения
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
-		$isStarted = $tableOrderProduct->isOrderStarted($orderId);
 		
 		//Если стартовал, то отмена не возможна
-		if ($isStarted){
+		if ($tableOrderProduct->isOrderStarted($orderId)){
 			return false;
 		
 		//Изменяем статус заказа
 		$tableOrderProduct->setOrderStatus($orderId, -1);
 		$tableOrder = new Application_Model_DbTable_Order();
 		$tableOrder->setOrderStatus($orderId, 1);
+		
 		return true;
 	}	
 	
@@ -168,31 +170,23 @@ class FrontOffice{
 	public function getOrderStatus($date, $orderId){
 		//Получаем все блоки заказа
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		
 		$orderBlocks = $tableOrderProduct->getOrderProductByOrderId($orderId);
 		
 		//Пробегаемся по ним и формируем 2 массива: 1 - уже выполнено; 2 - всего
-		$result1 = array(
-			1 => 0,
-			2 => 0,
-			3 => 0
-		);			
-		
-		$result2 = array(
-			1 => 0,
-			2 => 0,
-			3 => 0
-		);	
+		$done = array_fill(1, 3, 0);	
+		$total = array_fill(1, 3, 0);
 		
 		foreach ($orderBlocks as $block){
-			if ($block['Date'] > 0){
-				$result1[$block['ProductID']] += $block['Count'];
-			}
-			$result2[$block['ProductID']] += $block['Count'];
+			if ($block['Date'] > 0)
+				$done[$block['ProductID']] += $block['Count'];
+			
+			$total[$block['ProductID']] += $block['Count'];
 		}
 		
 		return array (
-			'Done' => $result1, 
-			'Total' => $result2
+			'Done' => $done, 
+			'Total' => $total
 		); 		
 	}
 	
