@@ -276,7 +276,7 @@ class Simulation{
 		$tableDelivery->updateDelivery($date, $deliveryId);
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
 		
-		$materials=array(1,2,3,4,5,6,7,8,9,10,11,12);
+		$materials = range(1, 12);
 		
 		for ($i = 0; $i < 12; $i++)
 		{
@@ -333,16 +333,19 @@ class Simulation{
 				'ProductID' => 4,
 				'Count'		=> 100,
 				'RealCount' => 0
-				);
+			);
+			
 			$tableOrdProd = new Application_Model_DbTable_OrderProduct();
 			$tableEP = new Application_Model_DbTable_ExecutionPlan();
 			$orderProducts = $tableEP->getOrderProductByTime($date, 100);
 			$tableOrdProd->insert($data);
 			$insertedOrderProduct = $tableOrdProd->lastOrderProduct();
+			
 			$data = array(
 				'OrderProductID' => $insertedOrderProduct['ID'],
 				'AddOpportunity' => 0
-				);
+			);
+			
 			$tableEP->insertIntoPlan($orderProducts[0], $data);
 			$avaibleProd = $this->getAvaibleProd($date);
 			
@@ -351,33 +354,41 @@ class Simulation{
 			$planIDs = $tableEP->getOrderProductByTime($date, $exTime);			
 			foreach ($planIDs as $planID){
 				$ordProd = $tableOrdProd->getOrderProduct($planID);
-				if ($avaibleProd[$ordProd['ProductID']] > 0){
-					if ($avaibleProd[$ordProd['ProductID']] >= $ordProd['Count']){
-						$avaibleProd[$ordProd['ProductID']] = $avaibleProd[$ordProd['ProductID']] - $ordProd['Count'];
-						$data = array(
-							'Count' => 0
-						);
-						$where['ID = ?'] = $planID;
-						$tableOrdProd->update($data, $where);
-						$plan1[] = array(
-							'demandId' => $ordProd['OrderID'],
-							'productId' => $ordProd['ProductID'],
-							'count' => $ordProd['Count']
-						);
-					}else{
-						$avaibleProd[$ordProd['ProductID']] = 0;
-						$count = $ordProd['Count'] - $avaibleProd[$ordProd['ProductID']];
-						$data = array(
-							'Count' => $count
-						);
-						$where['ID = ?'] = $planID;
-						$tableOrdProd->update($data, $where);
-						$plan1[] = array(
-							'demandId' => $ordProd['OrderID'], 
-							'productId' => $ordProd['ProductID'], 
-							'count' => $avaibleProd[$ordProd['ProductID']]
-						);
-					}
+				
+				if($avaibleProd[$ordProd['ProductID']] <= 0)
+					continue;
+				
+				if ($avaibleProd[$ordProd['ProductID']] >= $ordProd['Count']){
+					$avaibleProd[$ordProd['ProductID']] = $avaibleProd[$ordProd['ProductID']] - $ordProd['Count'];
+					$data = array(
+						'Count' => 0
+					);
+					
+					$where['ID = ?'] = $planID;
+					$tableOrdProd->update($data, $where);
+					
+					$plan1[] = array(
+						'demandId' => $ordProd['OrderID'],
+						'productId' => $ordProd['ProductID'],
+						'count' => $ordProd['Count']
+					);
+					
+				}else{
+					$avaibleProd[$ordProd['ProductID']] = 0;
+					
+					$count = $ordProd['Count'] - $avaibleProd[$ordProd['ProductID']];
+					$data = array(
+						'Count' => $count
+					);
+					
+					$where['ID = ?'] = $planID;
+					$tableOrdProd->update($data, $where);
+					
+					$plan1[] = array(
+						'demandId' => $ordProd['OrderID'], 
+						'productId' => $ordProd['ProductID'], 
+						'count' => $avaibleProd[$ordProd['ProductID']]
+					);
 				}
 			}
 			
@@ -433,27 +444,35 @@ class Simulation{
 		
 		$tableEP = new Application_Model_DbTable_ExecutionPlan();
 		$tableOrdProd = new Application_Model_DbTable_OrderProduct();
+		$tableProduct = new Application_Model_DbTable_Product();
+		$tableRaw = new Application_Model_DbTable_Raw();
+		
 		$orderProducts = $tableEP->getOrderProductByTime($date, 100);
 		$time = 100;
-		$tableProduct = new Application_Model_DbTable_Product();
+		
 		$times = $tableProduct->getRetunningExecutionProductTime();
-		$tableRaw = new Application_Model_DbTable_Raw();
+		
 		$orderProduct = $tableOrdProd->getOrderProduct($orderProducts[0]);
 		$amountOfMaterials = $tableRaw->getListOfMaterials();
+		
 		$flagTime = false;
+		
 		for ($i = 1; $i < 3; $i++){
 			$matReq = array(
 				1 => 0,
 				2 => 0,
 				3 => 0
 			);
+			
 			$matReq[$i] = 1;
 			$req = $this->necessaryAmountOfMaterials($matReq);
+			
 			$min = 9999;
 			for ($j = 0; $j < 12; $j++){
 				$n = round(($amountOfMaterials[$j]['Count'] / $req[$j+1]), 0);
 				$min = min($min, $n);
 			}
+			
 			if ($min == 9999)
 				$min = 0;
 				
@@ -464,15 +483,14 @@ class Simulation{
 				$time -= $times[$i]['RetunningTime'];
 			} 
 			
-			if ($time < ($min * $times[$i]['ExecutionTime'])){
-				$num = round(($time/$times[$i]['ExecutionTime']),0);
-				$saveProd[$i] += $num;
-				$time -= $num * $times[$i]['ExecutionTime'];
-			}else{
-				$saveProd[$i] += $min;
-				$time -= $min * $times[$i]['ExecutionTime'];
-			}
+			$num = $min;
+			if ($time < ($min * $times[$i]['ExecutionTime']))
+				$num = round(($time / $times[$i]['ExecutionTime']), 0);
+			
+			$saveProd[$i] += $num;
+			$time -= $num * $times[$i]['ExecutionTime'];
 		}
+		
 		if ($time > 0){
 			$saveProd[4] = $time;
 		}	
