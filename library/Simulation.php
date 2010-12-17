@@ -1,6 +1,5 @@
 <?php
 class Simulation{
-	
 	/**
 	 * 
 	 * Чистка базы при старте моделирования
@@ -9,17 +8,19 @@ class Simulation{
 	 */
 	public function niceStart($date){ //$date не используется, но оставляю, чтобы не было проблем с интеграцией
 		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
+		
 		$db->exec('TRUNCATE TABLE ExecutionPlan');
 		$db->exec('TRUNCATE TABLE OrderProduct');		
-		$db->exec("TRUNCATE TABLE `Order`");			
+		$db->exec('TRUNCATE TABLE Order');			
 		$db->exec('TRUNCATE TABLE Nomenclature');
 		$db->exec('TRUNCATE TABLE Delivery');				
-		$db->exec('TRUNCATE TABLE Customer');		
+		$db->exec('TRUNCATE TABLE Customer');
+		
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->setEmpty();		
-		return TRUE;		
+		
+		return true;		
 	}
-	
 	
 	/**
 	 * 
@@ -30,9 +31,10 @@ class Simulation{
 	private function necessaryAmountOfMaterials($products){
 		$tableRawRequment = new Application_Model_DbTable_RawRequiment();
 		$rawRequiments = $tableRawRequment->getRequiments();
-		foreach ($rawRequiments as $requiments){
-			$result[$requiments['RawID']] += $requiments['Count']*$products[$requiments['ProductID']];
-		}
+		
+		foreach ($rawRequiments as $requiments)
+			$result[$requiments['RawID']] += $requiments['Count'] * $products[$requiments['ProductID']];
+		
 		return $result;
 	}
 	
@@ -43,7 +45,7 @@ class Simulation{
 	 * @param int $time
 	 * @return mixed
 	 */
-private function getListOfProducts($date, $time){		
+	private function getListOfProducts($date, $time){		
 		$tableExecutionPlan = new Application_Model_DbTable_ExecutionPlan();
 		$plan = $tableExecutionPlan->getExecutionPlan();
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
@@ -55,9 +57,11 @@ private function getListOfProducts($date, $time){
 			2 => 0,
 			3 => 0,
 			4 => 0
-			);
+		);
+			
 		while ($row = $plan->fetch()){
 			$exTime = $tableExecutionPlan->getOrderProductExecutionTime($row['OrderProductID']);
+			
 			if ($exTime > $date){
 				$orderProduct = $tableOrderProduct->getOrderProduct($row['OrderProductID']);
 				$prevOrderProduct = $tableOrderProduct->getOrderProduct($prevPlan['OrderProductID']);
@@ -72,28 +76,37 @@ private function getListOfProducts($date, $time){
 				if ($orderProduct['ProductID'] == 4){
 					$retunningTime = 0;
 				}			
-				if (!($rT))$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
+				
+				if (!($rT))
+					$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
+				
 				if ($prevExTime + $rT < $date){
 					$finPlanTime = $date - $prevExTime - $retunningTime; 
 					$mod = ($exTime - $date - $finPlanTime) % $times[$orderProduct['ProductID']]['ExecutionTime'];
 					$res = (($exTime - $date - $finPlanTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime']);
-					if ($mod <> 0) $res++;
+					
+					if ($mod <> 0)
+						$res++;
 				}else{
 					$planTime = $exTime - $prevExTime - $retunningTime;
 					$res = $planTime / $times[$orderProduct['ProductID']]['ExecutionTime'];
 				}		
+				
 				$res = 1;
 				if ($exTime > $date + $time){
 					$overTime = $exTime - $date - $time;
 					$mod = $overTime % $times[$orderProduct['ProductID']]['ExecutionTime'];
 					$overProduct = ($overTime - $mod) / $times[$orderProduct['ProductID']]['ExecutionTime'];
 					//if ($mod <> 0) $overProduct++;
-					$res = $res - $overProduct; 
+					$res -= $overProduct; 
 				}			
-				$result[$orderProduct['ProductID']] = $result[$orderProduct['ProductID']] + $res;
 				
+				$result[$orderProduct['ProductID']] += $res;
 			}
-			if ($exTime + $rT> $date + $time) break;
+			
+			if ($exTime + $rT> $date + $time)
+				break;
+			
 			$prevExTime = $exTime;
 			$prevPlan = $row;			
 			$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
@@ -115,8 +128,10 @@ private function getListOfProducts($date, $time){
 		$tableProduct = new Application_Model_DbTable_Product();
 		$times = $tableProduct->getRetunningExecutionProductTime(); 
 		$prevExTime = 0; 
+		
 		while ($row = $plan->fetch()){
 			$exTime = $tableExecutionPlan->getOrderProductExecutionTime($row['OrderProductID']);
+			
 			if ($exTime > $date){
 				$orderProduct = $tableOrderProduct->getOrderProduct($row['OrderProductID']);
 				$prevOrderProduct = $tableOrderProduct->getOrderProduct($prevPlan['OrderProductID']);
@@ -131,7 +146,9 @@ private function getListOfProducts($date, $time){
 				if ($orderProduct['ProductID'] == 4){
 					$retunningTime = 0;
 				}			
-				if (!($rT))$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
+				if (!($rT))
+					$rT = $times[$orderProduct['ProductID']]['RetunningTime'];
+					
 				if (($prevExTime + $rT) < $date){
 					$finPlanTime = $date - $prevExTime - $retunningTime; 
 					$mod = ($exTime - $date - $finPlanTime) % $times[$orderProduct['ProductID']]['ExecutionTime'];
@@ -141,6 +158,7 @@ private function getListOfProducts($date, $time){
 					$planTime = $exTime - $prevExTime - $retunningTime;
 					$res = $planTime / $times[$orderProduct['ProductID']]['ExecutionTime'];
 				}		
+				
 				if ($exTime > $date + $time){
 					$overTime = $exTime - $date - $time;
 					$mod = $overTime % $times[$orderProduct['ProductID']]['ExecutionTime'];
@@ -148,18 +166,22 @@ private function getListOfProducts($date, $time){
 					//if ($mod <> 0) $overProduct++;
 					$res = $res - $overProduct; 
 				}			
-				$result[] = array('demandId' => $orderProduct['OrderID'], 'productId' => $orderProduct['ProductID'], 'count' => $res);
 				
+				$result[] = array(
+					'demandId' => $orderProduct['OrderID'], 
+					'productId' => $orderProduct['ProductID'], 
+					'count' => $res
+				);
 			}
-			if ($exTime  + $rT > $date + $time) break;
+			if ($exTime  + $rT > $date + $time)
+				break;
+				
 			$prevExTime = $exTime;
 			$prevPlan = $row;
 			$rT = $times[$orderProduct['ProductID']]['RetunningTime'];			
 		}
 		return $result;
 	}
-	
-	
 	
 	/**
 	 * 
@@ -170,60 +192,71 @@ private function getListOfProducts($date, $time){
 	public function getShoppingList($date){
 		$date = $this->convertDate($date);
 		$listOfProducts = $this->getListOfProducts($date + 300, 700);
+		
 		$queryData = array(
 			1 => $listOfProducts[1],
 			2 => $listOfProducts[2],
 			3 => $listOfProducts[3] 
-			);
+		);
+			
 		$listOfMaterials = $this->necessaryAmountOfMaterials($queryData);
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$deliveries = $tableDelivery->getAll();
 		$sum = 0;
-		$n = 0;
+		
+		$n = count($deliveries);
+		
 		foreach ($deliveries as $delivery){
-			$sum += ($delivery['Date'] - $delivery)*($delivery['Date'] - $delivery);
-			$n++;
+			$sum += ($delivery['Date'] - $delivery) * ($delivery['Date'] - $delivery);
 			$lastDeliveryId = $delivery['ID'];
 		}
 		$sigmaVKvadrate = $sum/$n;
 		$sigmaT = sqrt($sigmaVKvadrate);	
+		
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();	
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$rawList = $tableRaw->getListOfMaterials();
 		foreach ($rawList as $material){
 			$nomenclature = $tableNomenclature->getNomenclatureForMaterial($material['ID']);
 			$sum = 0;
-			$n = 0;
-			foreach ($nomenclature as $nom){
-				$sum = ($nom['Count'] - $nom['RealCount'])*($nom['Count'] - $nom['RealCount']);
-				$n++;
-			}
+			
+			$n = count($nomenclature);
+			
+			foreach ($nomenclature as $nom)
+				$sum = ($nom['Count'] - $nom['RealCount']) * ($nom['Count'] - $nom['RealCount']);
+			
 			$sigmaVKvadrate = $sum/$n;
 			$sigmaN = sqrt($sigmaVKvadrate);
 			$shoppingList[$material['ID']] = round($listOfMaterials[$material['ID']] + $listOfMaterials[$material['ID']] * $sigmaT / 700 + $sigmaN); 
 			$shoppingList2[$material['ID']] = array('ID' => $material['ID'], 'Count' => $shoppingList[$material['ID']]);
 		}
+		
 		$date += 300;
 		$deliveryData = array(
 			'Date' => $date,
 			'RealDate' => 0,
-			);
+		);
+		
 		$tableDelivery->insert($deliveryData);
-		if(!($lastDeliveryId))	$lastDeliveryId = 0;			
+		if(!($lastDeliveryId))
+			$lastDeliveryId = 0;			
+			
 		foreach ($shoppingList2 as $material){
 			$nomData = array(
 				'DeliveryID'	=> $lastDeliveryId + 1,
 				'RawID'			=> $material['ID'],
 				'Count'			=> $material['Count'],
 				'RealCount'		=> 0
-				);
+			);
+			
 			$tableNomenclature->insert($nomData);
 			$count = $tableRaw->getCount($material['ID']);
 			$count += $material['Count'];
 			$where['ID = ?'] = $material['ID'];
+			
 			$rawData = array(
 				'Count' => $count,
-				); 
+			); 
 			$tableRaw->update($rawData, $where);	
 		}
 		return $shoppingList;
@@ -242,7 +275,9 @@ private function getListOfProducts($date, $time){
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$tableDelivery->updateDelivery($date, $deliveryId);
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
+		
 		$materials=array(1,2,3,4,5,6,7,8,9,10,11,12);
+		
 		for ($i = 0; $i < 12; $i++)
 		{
 			$RawId=$i+1;
@@ -251,7 +286,7 @@ private function getListOfProducts($date, $time){
 		/*foreach ($materials as $material){
 			$tableNomenclature->insertIntoNomenclature($deliveryId, $material['RawID'], $material['Count']);
 		}*/
-		return TRUE;
+		return true;
 	}
 	
 	/**
@@ -263,18 +298,23 @@ private function getListOfProducts($date, $time){
 	public function getPlan($date){
 		$date = $this->convertDate($date);
 		$plan = $this->getListOfProducts($date, 100);
+		
 		$data = array(
 			1 => $plan[1],
 			2 => $plan[2],
 			3 => $plan[3]
-			);
+		);
+			
 		$materials = $this->necessaryAmountOfMaterials($data);
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$warehouse = $tableRaw->getListOfMaterials();
-		$flag = TRUE;
+		$flag = true;
+		
 		foreach ($warehouse as $material){
-			if ($material['Count'] < $materials[$material['ID']]) $flag = FALSE;
+			if ($material['Count'] < $materials[$material['ID']]) 
+				$flag = false;
 		}
+		
 		if ($flag){					
 			for ($i = 1; $i < 13; $i++){
 				$co = $tableRaw->getCount($i);
@@ -282,7 +322,7 @@ private function getListOfProducts($date, $time){
 				$where['ID = ?'] = $i;
 				$rawData = array(
 					'Count'	=> $co
-					);
+				);
 				$tableRaw->update($rawData, $where);
 			}
 			$plan1 = $this->getListOfProductsWithOrderId($date, 100);
@@ -298,7 +338,6 @@ private function getListOfProducts($date, $time){
 			$tableEP = new Application_Model_DbTable_ExecutionPlan();
 			$orderProducts = $tableEP->getOrderProductByTime($date, 100);
 			$tableOrdProd->insert($data);
-			$tableOrdProd = new Application_Model_DbTable_OrderProduct();
 			$insertedOrderProduct = $tableOrdProd->lastOrderProduct();
 			$data = array(
 				'OrderProductID' => $insertedOrderProduct['ID'],
@@ -317,38 +356,49 @@ private function getListOfProducts($date, $time){
 						$avaibleProd[$ordProd['ProductID']] = $avaibleProd[$ordProd['ProductID']] - $ordProd['Count'];
 						$data = array(
 							'Count' => 0
-							);
+						);
 						$where['ID = ?'] = $planID;
 						$tableOrdProd->update($data, $where);
-						$plan1[] = array('demandId' => $ordProd['OrderID'], 'productId' => $ordProd['ProductID'], 'count' => $ordProd['Count']);
+						$plan1[] = array(
+							'demandId' => $ordProd['OrderID'],
+							'productId' => $ordProd['ProductID'],
+							'count' => $ordProd['Count']
+						);
 					}else{
 						$avaibleProd[$ordProd['ProductID']] = 0;
 						$count = $ordProd['Count'] - $avaibleProd[$ordProd['ProductID']];
 						$data = array(
 							'Count' => $count
-							);
+						);
 						$where['ID = ?'] = $planID;
 						$tableOrdProd->update($data, $where);
-						$plan1[] = array('demandId' => $ordProd['OrderID'], 'productId' => $ordProd['ProductID'], 'count' => $avaibleProd[$ordProd['ProductID']]);
+						$plan1[] = array(
+							'demandId' => $ordProd['OrderID'], 
+							'productId' => $ordProd['ProductID'], 
+							'count' => $avaibleProd[$ordProd['ProductID']]
+						);
 					}
 				}
 			}
+			
 			$producedProd = array(
 				1 => 0,
 				2 => 0,
 				3 => 0
-				);
+			);
+			
 			foreach ($plan1 as $pl){
 				$producedProd[$pl['productId']] += $pl['count'];
 			}
 			$materials = $this->necessaryAmountOfMaterials($producedProd);
+			
 			for ($i = 1; $i < 13; $i++){
 				$co = $tableRaw->getCount($i);
 				$co = $co -	$materials[$i];          
 				$where['ID = ?'] = $i;
 				$rawData = array(
 					'Count'	=> $co
-					);
+				);
 				$tableRaw->update($rawData, $where);
 			}
 			$tableProduct = new Application_Model_DbTable_Product();
@@ -360,12 +410,15 @@ private function getListOfProducts($date, $time){
 				}
 			}			
 			$downtime += $avaibleProd[4];
-			$plan1[] = array('demandId' => 1, 'productId' => 4, 'count' => $downtime);
-			//$result[] = array('demandId' => $orderProduct['OrderID'], 'productId' => $orderProduct['ProductID'], 'count' => $res);
+			$plan1[] = array(
+				'demandId' => 1,
+				'productId' => 4,
+				'count' => $downtime
+			);
+			
 			return $plan1;
 		}
 	}
-	
 	
 	/**
 	 * Узнаем сколько можно произвести из оставшихся материалов
@@ -373,10 +426,11 @@ private function getListOfProducts($date, $time){
 	 */
 	private function getAvaibleProd($date) {
 		$saveProd = array(
-				1 => 0,
-				2 => 0,
-				3 => 0
-				);
+			1 => 0,
+			2 => 0,
+			3 => 0
+		);
+		
 		$tableEP = new Application_Model_DbTable_ExecutionPlan();
 		$tableOrdProd = new Application_Model_DbTable_OrderProduct();
 		$orderProducts = $tableEP->getOrderProductByTime($date, 100);
@@ -386,44 +440,45 @@ private function getListOfProducts($date, $time){
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$orderProduct = $tableOrdProd->getOrderProduct($orderProducts[0]);
 		$amountOfMaterials = $tableRaw->getListOfMaterials();
-		$flagTime = FALSE;
+		$flagTime = false;
 		for ($i = 1; $i < 3; $i++){
 			$matReq = array(
 				1 => 0,
 				2 => 0,
 				3 => 0
-				);
+			);
 			$matReq[$i] = 1;
 			$req = $this->necessaryAmountOfMaterials($matReq);
 			$min = 9999;
 			for ($j = 0; $j < 12; $j++){
-				$n = round(($amountOfMaterials[$j]['Count']/$req[$j+1]), 0);
-				if ($min < $n) $min = $n;
+				$n = round(($amountOfMaterials[$j]['Count'] / $req[$j+1]), 0);
+				$min = min($min, $n);
 			}
-			if ($min == 9999) $min = 0;
-			if ($i <> $orderProduct['ProductID']) $flagTime = TRUE;
+			if ($min == 9999)
+				$min = 0;
+				
+			if ($i <> $orderProduct['ProductID'])
+				$flagTime = true;
+				
 			if ($flagTime){
-				$time = $time - $times[$i]['RetunningTime'];
+				$time -= $times[$i]['RetunningTime'];
 			} 
+			
 			if ($time < ($min * $times[$i]['ExecutionTime'])){
 				$num = round(($time/$times[$i]['ExecutionTime']),0);
 				$saveProd[$i] += $num;
-				$time = $time - $num * $times[$i]['ExecutionTime'];
+				$time -= $num * $times[$i]['ExecutionTime'];
 			}else{
 				$saveProd[$i] += $min;
-				$time = $time - $min * $times[$i]['ExecutionTime'];
+				$time -= $min * $times[$i]['ExecutionTime'];
 			}
 		}
 		if ($time > 0){
 			$saveProd[4] = $time;
 		}	
-		$result = $saveProd;
-		return $result;
+		
+		return $saveProd;
 	}
-
-	
-	
-	
 	
 	/**
 	 * 
@@ -431,16 +486,14 @@ private function getListOfProducts($date, $time){
 	 * @param int $date
 	 */
 	private function convertDate($date){
-			$tstmp = strtotime($date);
-			$tblHelp = new Application_Model_DbTable_Helper();
-			$startTime = $tblHelp->getStartTime();
-			$time = $tstmp - $startTime;
-			$time = round($time/864);
-			return $time;		
-		}
-	
-	
-	
+		$tstmp = strtotime($date);
+		$tblHelp = new Application_Model_DbTable_Helper();
+		$startTime = $tblHelp->getStartTime();
+		$time = $tstmp - $startTime;
+		$time = round($time/864);
+		return $time;		
+	}
+		
 	/**
 	 * Session test
 	 * @param string $id
@@ -449,18 +502,23 @@ private function getListOfProducts($date, $time){
 	public function test1($id){		
 		$date = $this->convertDate($id);
 		$plan = $this->getListOfProducts(4, 100);
+		
 		$data = array(
 			1 => $plan[1],
 			2 => $plan[2],
 			3 => $plan[3]
-			);
+		);
+		
 		$materials = $this->necessaryAmountOfMaterials($data);
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$warehouse = $tableRaw->getListOfMaterials();
-		$flag = TRUE;
+		$flag = true;
+		
 		foreach ($warehouse as $material){
-			if ($material['Count'] < $materials[$material['ID']]) $flag = FALSE;
+			if ($material['Count'] < $materials[$material['ID']])
+				$flag = false;
 		}
+		
 		return $materials[1];       	
 	}
 	

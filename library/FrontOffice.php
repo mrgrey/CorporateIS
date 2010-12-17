@@ -17,22 +17,27 @@ class FrontOffice{
 			1	=> $product1count,
 			2	=> $product2count,
 			3	=> $product3count
-			);
-	//Проверяем наличие пользователя в БД и добавляем при необходимости
+		);
+			
+		//Проверяем наличие пользователя в БД и добавляем при необходимости
 		$tableCustomer = new Application_Model_DbTable_Customer();
 		$customerId = $tableCustomer->getCustomerId($customer);
 		if (!$customerId){		
 			$customerId = $tableCustomer->newCustomer($customer);						
 		}
-	//Расчитываем время выполнения заказа
+		
+		//Расчитываем время выполнения заказа
 		$exTime = $this->getExecutionTime($date, $products);
-    //Сохраняем заказ в БД     	
+		
+		//Сохраняем заказ в БД     	
      	//Сохраняем сам заказ   
      	$tableOrder = new Application_Model_DbTable_Order();  
      	$orderId = $tableOrder->newOrder($customerId, $date, $exTime);	     	
+		
      	//Сохраняем его блоки     	
      	$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
      	$tableOrderProduct->newOrderProducts($orderId, $products, -1);     	
+		
      	//Получаем результат
      	$orderExTime = date('Y-m-d H:i:s', $exTime);
      	return array(
@@ -44,20 +49,16 @@ class FrontOffice{
 	private function getExecutionTime($date, $products){	
      	$tableOrder = new Application_Model_DbTable_Order();
      	$tableProduct = new Application_Model_DbTable_Product(); 
+		
      	//Определяем время старта    	
      	$previousOrder = $tableOrder->getLastAcceptedOrder();
-     	if ($previousOrder){
-     		$previousOrderExTime = $previousOrder['ExecutionTime'];
-     	}else{
-//!!!Поменять значение в зависимости от даты первой поставки материалов
-     		$previousOrderExTime = $date + 300 * 864; 
-     	}
-     	if ($previousOrderExTime < $date){
-     		$exTime = $date;	
-     	}else{ 
-     		$exTime = $previousOrderExTime;
-     	} 
-     	$exTime = $previousOrderExTime;
+		
+		$previousOrderExTime = $previousOrder
+			? $previousOrder['ExecutionTime']
+			: $date + 300 * 864; //!!!Поменять значение в зависимости от даты первой поставки материалов
+		
+		$exTime = max($previousOrderExTime, $date);
+
      	$times = $tableProduct->getRetunningExecutionProductTime();     
      	for ($i = 1; $i < 4; $i++){
      		if ($products[$i] > 0){
@@ -77,14 +78,12 @@ class FrontOffice{
 	 */
 	public function confirmOrder($date, $orderId, $orderType){
 		$tableOrder = new Application_Model_DbTable_Order();
-		$updateOrder = $tableOrder->setOrderStatus($orderId, $orderType);
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		
+		$updateOrder = $tableOrder->setOrderStatus($orderId, $orderType);
 		$updateOrderProduct = $tableOrderProduct->setOrderStatus($orderId, 0);
-		if (($updateOrder)&&($updateOrderProduct)){
-			return TRUE;	
-		}else{
-			return FALSE;
-		}		
+		
+		return $updateOrder && $updateOrderProduct;
 	}
 	
 	/**
@@ -124,13 +123,16 @@ class FrontOffice{
 			);
 		//Получаем время выполнения
 		$exTime = $this->getExecutionTime($date, $product);
+		
 		//Изменяем время выполнения заказа
 		$tableOrder = new Application_Model_DbTable_Order();
 		$tableOrder->setExecutionTime($orderId, $exTime);
+		
 		//Добавляем новые блоки заказа
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
      	$tableOrderProduct->newOrderProducts($orderId, $product, 0);
-		return TRUE;
+		
+		return true;
 	}
 	
 	/**
@@ -144,16 +146,16 @@ class FrontOffice{
 		//Проверяем заказ на старт выполнения
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 		$isStarted = $tableOrderProduct->isOrderStarted($orderId);
+		
 		//Если стартовал, то отмена не возможна
 		if ($isStarted){
-			return FALSE;
-		}else{
-			//Изменяем статус заказа
-			$tableOrderProduct->setOrderStatus($orderId, -1);
-			$tableOrder = new Application_Model_DbTable_Order();
-			$tableOrder->setOrderStatus($orderId, 1);
-			return TRUE;
-		}		
+			return false;
+		
+		//Изменяем статус заказа
+		$tableOrderProduct->setOrderStatus($orderId, -1);
+		$tableOrder = new Application_Model_DbTable_Order();
+		$tableOrder->setOrderStatus($orderId, 1);
+		return true;
 	}	
 	
 	/**
@@ -167,24 +169,31 @@ class FrontOffice{
 		//Получаем все блоки заказа
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 		$orderBlocks = $tableOrderProduct->getOrderProductByOrderId($orderId);
+		
 		//Пробегаемся по ним и формируем 2 массива: 1 - уже выполнено; 2 - всего
 		$result1 = array(
 			1 => 0,
 			2 => 0,
 			3 => 0
-			);			
+		);			
+		
 		$result2 = array(
 			1 => 0,
 			2 => 0,
 			3 => 0
-			);	
+		);	
+		
 		foreach ($orderBlocks as $block){
 			if ($block['Date'] > 0){
 				$result1[$block['ProductID']] += $block['Count'];
 			}
 			$result2[$block['ProductID']] += $block['Count'];
 		}
-		return array ('Done' => $result1, 'Total' => $result2); 		
+		
+		return array (
+			'Done' => $result1, 
+			'Total' => $result2
+		); 		
 	}
 	
 }
