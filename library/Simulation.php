@@ -269,12 +269,13 @@ class Simulation{
 	public function getPlan($date){
 		$date = strtotime($date);
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		//Получаем массив невыполненных блоков
 		$ordProds = $tableOrderProduct->getWaitingList();
 		//Сортировка вставками (Insertion sort) — Сложность алгоритма: O(n2); определяем где текущий элемент должен находиться в упорядоченном списке и вставляем его туда
-		//Ищу опорный элемент
-		$supBlock = $ordProds[round(count($ordProds)/2, 0)-1];
+		//Ищу опорный элемент, им будет первый элемент массива блоков, который с большой долей вероятности имеет максимально возможный приоритет
+		$list[] = $ordProds[0];		
 		//Собираю список
-		foreach ($ordProds as $block){
+		foreach ($ordProds as $block){ //foreach 1
 			/*Каждый $block имеет следующую структуру:
 			 * array(
 			 * 		'ID' 			=>	int - ID блока
@@ -289,8 +290,52 @@ class Simulation{
 			 *		'RetunningTime'	=> 	int - время необходимое для настройки оборудования перед тем, как начать производить продукт
 			 *		)
 			 */
-		}
-		return $supBlock;		
+			//сразу проверяем блок на наличие модификатора, что будет означать, 
+			//что на нем остановилось производство в прошлый день и его надо запихать первым в новый план
+			if ($block['Modifier'] != 0){
+				$modifiedBlock = $block;
+			}else{
+				//не повезло и придется искать место для этого блока
+				$flag1 = TRUE; //флаг, который будет определять нашли ли мы место для этого блока
+				$flag2 = FALSE; //флаг, который определяет очередь блоков с одинаковыми продуктами
+				$i = 0; //счетчик позиции в листе
+				foreach ($list as $sortedBlock){ // foreach 2
+					//Если блоки со схожим продуктом уже есть в очереди, то текущий блок надо поставить следом за ними,
+					//при этом следует учесть, что текущий блок не должен производиться более одного дня
+					if (($sortedBlock['ProductID'] == $block['ProductID']) && ($block['Count']*$block['ExecutionTime'] < 86400)){						
+						//проверяем на то, что отсортированный блок должен быть выполнен позже текущего
+						if ($sortedBlock[DateExecution] + $sortedBlock['Time'] > $sortedBlock[DateExecution] + $sortedBlock['Time']){
+							//запихиваем текущий блок на место отсортированного
+							$list = array_merge(
+								array_slice($list, 0, $i-1),
+								array($block),
+								array_slice($list, $i)
+								);
+							$flag1 = FALSE;
+							break;
+						}
+						$flag2 = TRUE;
+					}else{
+						if ($flag2){
+							//запихиваем текущий блок на место отсортированного
+							$list = array_merge(
+								array_slice($list, 0, $i-1),
+								array($block),
+								array_slice($list, $i)
+								);
+							$flag1 = FALSE;
+							break;
+						}
+					}
+					$i++;										
+				}//end of foreach 2
+				//добавить элемент было некуда, запихиваем в конец очереди
+				if ($flag1) $list[] = $block;
+			}			
+		}//end of foreach 1
+		//Из получившегося списка взять 1 день
+		
+		return $list;		
 	}
 	
 	/**

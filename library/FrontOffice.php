@@ -153,11 +153,11 @@ class FrontOffice{
 		if ($tableOrderProduct->isOrderStarted($orderId)){
 			return false;
 		}else{
-		//Изменяем статус заказа
-		$tableOrderProduct->setOrderStatus($orderId, -1);
-		$tableOrder = new Application_Model_DbTable_Order();
-		$tableOrder->setOrderStatus($orderId, 1);		
-		return true;
+			//Изменяем статус заказа
+			$tableOrderProduct->setOrderStatus($orderId, -1);
+			$tableOrder = new Application_Model_DbTable_Order();
+			$tableOrder->setOrderStatus($orderId, 1);		
+			return true;
 		}
 	}	
 	

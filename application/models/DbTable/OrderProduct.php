@@ -94,7 +94,8 @@
 				->join('Order','OrderProduct.OrderID = Order.ID', array('DateExecution', 'OrderTypeID'))
 				->join('Product', 'OrderProduct.ProductID = Product.ID', array('ExecutionTime', 'RetunningTime'))
 				->join('OrderType', 'Order.OrderTypeID = OrderType.ID', array('Time'))
-				->where('Date = 0');
+				->where('Date = 0')
+				->order('ID DESC');
 			$stmt = $db->query($select);			
 			return $stmt->fetchAll();
 		}
