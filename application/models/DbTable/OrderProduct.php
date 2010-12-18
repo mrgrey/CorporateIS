@@ -82,4 +82,21 @@
 
 			return $db->query($select);
 		}
+		
+		/**
+		 * 
+		 * ѕолучение списка блоков, ожидающих выполнени€
+		 */
+		public function getWaitingList(){
+			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
+			$select = $db->select()
+				->from('OrderProduct')
+				->join('Order','OrderProduct.OrderID = Order.ID', array('DateExecution', 'OrderTypeID'))
+				->join('Product', 'OrderProduct.ProductID = Product.ID', array('ExecutionTime', 'RetunningTime'))
+				->join('OrderType', 'Order.OrderTypeID = OrderType.ID', array('Time'))
+				->where('Date = 0');
+			$stmt = $db->query($select);
+			$result = $stmt->fetchAll();
+			return $result;
+		}
 	}
