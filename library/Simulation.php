@@ -262,144 +262,35 @@ class Simulation{
 	
 	/**
 	 * 
-	 * ѕолучение плана на день
+	 * ѕолучение плана на день InProgress
 	 * @param string $date
 	 * @return mixed
 	 */
 	public function getPlan($date){
-		$date = $this->convertDate($date);
-		$plan = $this->getListOfProducts($date, 100);
-		
-		$data = array(
-			1 => $plan[1],
-			2 => $plan[2],
-			3 => $plan[3]
-		);
-			
-		$materials = $this->necessaryAmountOfMaterials($data);
-		$tableRaw = new Application_Model_DbTable_Raw();
-		$warehouse = $tableRaw->getListOfMaterials();
-		$flag = true;
-		
-		foreach ($warehouse as $material){
-			if ($material['Count'] < $materials[$material['ID']]) 
-				$flag = false;
+		$date = strtotime($date);
+		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		$ordProds = $tableOrderProduct->getWaitingList();
+		//—ортировка вставками (Insertion sort) Ч —ложность алгоритма: O(n2); определ€ем где текущий элемент должен находитьс€ в упор€доченном списке и вставл€ем его туда
+		//»щу опорный элемент
+		$supBlock = $ordProds[round(count($ordProds)/2, 0)-1];
+		//—обираю список
+		foreach ($ordProds as $block){
+			/* аждый $block имеет следующую структуру:
+			 * array(
+			 * 		'ID' 			=>	int - ID блока
+			 * 		'OrderID'		=>	int	- ID заказа
+			 * 		'ProductID'		=>	int	- ID продукта
+			 * 		'Date'			=>	int	- ƒата выполнени€ блока, по умолчанию дл€ невыполненных блоков равна 0
+			 * 		'Count'			=>	int	- количество продуктов
+			 *		'Modifier'		=>	int	- в случае, если часть одного продукта была выполнена в предыдущий день модификатор будет иметь значение равное потраченному времени
+			 *		'DateExecution'	=>	int - врем€ выполнени€ заказа
+			 *		'Time'			=>	int - срочность заказа (7 или 14 дней)
+			 *		'ExecutionTime'	=>	int - врем€ выполнени€ одного продукта
+			 *		'RetunningTime'	=> 	int - врем€ необходимое дл€ настройки оборудовани€ перед тем, как начать производить продукт
+			 *		)
+			 */
 		}
-		
-		if ($flag){					
-			for ($i = 1; $i < 13; $i++){
-				$co = $tableRaw->getCount($i);
-				$co = $co -	$materials[$i];          
-				$where['ID = ?'] = $i;
-				$rawData = array(
-					'Count'	=> $co
-				);
-				$tableRaw->update($rawData, $where);
-			}
-			$plan1 = $this->getListOfProductsWithOrderId($date, 100);
-			return $plan1;
-		}else{
-			$data = array(
-				'OrderID' 	=> 1,
-				'ProductID' => 4,
-				'Count'		=> 100,
-				'RealCount' => 0
-			);
-			
-			$tableOrdProd = new Application_Model_DbTable_OrderProduct();
-			$tableEP = new Application_Model_DbTable_ExecutionPlan();
-			$orderProducts = $tableEP->getOrderProductByTime($date, 100);
-			$tableOrdProd->insert($data);
-			$insertedOrderProduct = $tableOrdProd->lastOrderProduct();
-			
-			$data = array(
-				'OrderProductID' => $insertedOrderProduct['ID'],
-				'AddOpportunity' => 0
-			);
-			
-			$tableEP->insertIntoPlan($orderProducts[0], $data);
-			$avaibleProd = $this->getAvaibleProd($date);
-			
-			$lastP =  $tableEP->getLastPlan();
-			$exTime = $tableEP->getOrderProductExecutionTime($lastP['OrderProductID']);
-			$planIDs = $tableEP->getOrderProductByTime($date, $exTime);			
-			foreach ($planIDs as $planID){
-				$ordProd = $tableOrdProd->getOrderProduct($planID);
-				
-				if($avaibleProd[$ordProd['ProductID']] <= 0)
-					continue;
-				
-				if ($avaibleProd[$ordProd['ProductID']] >= $ordProd['Count']){
-					$avaibleProd[$ordProd['ProductID']] = $avaibleProd[$ordProd['ProductID']] - $ordProd['Count'];
-					$data = array(
-						'Count' => 0
-					);
-					
-					$where['ID = ?'] = $planID;
-					$tableOrdProd->update($data, $where);
-					
-					$plan1[] = array(
-						'demandId' => $ordProd['OrderID'],
-						'productId' => $ordProd['ProductID'],
-						'count' => $ordProd['Count']
-					);
-					
-				}else{
-					$avaibleProd[$ordProd['ProductID']] = 0;
-					
-					$count = $ordProd['Count'] - $avaibleProd[$ordProd['ProductID']];
-					$data = array(
-						'Count' => $count
-					);
-					
-					$where['ID = ?'] = $planID;
-					$tableOrdProd->update($data, $where);
-					
-					$plan1[] = array(
-						'demandId' => $ordProd['OrderID'], 
-						'productId' => $ordProd['ProductID'], 
-						'count' => $avaibleProd[$ordProd['ProductID']]
-					);
-				}
-			}
-			
-			$producedProd = array(
-				1 => 0,
-				2 => 0,
-				3 => 0
-			);
-			
-			foreach ($plan1 as $pl){
-				$producedProd[$pl['productId']] += $pl['count'];
-			}
-			$materials = $this->necessaryAmountOfMaterials($producedProd);
-			
-			for ($i = 1; $i < 13; $i++){
-				$co = $tableRaw->getCount($i);
-				$co = $co -	$materials[$i];          
-				$where['ID = ?'] = $i;
-				$rawData = array(
-					'Count'	=> $co
-				);
-				$tableRaw->update($rawData, $where);
-			}
-			$tableProduct = new Application_Model_DbTable_Product();
-			$times = $tableProduct->getRetunningExecutionProductTime();
-			$downtime = 0;
-			for ($i = 1; $i < 4; $i++){
-				if($avaibleProd[$i] > 0){
-					$downtime += $avaibleProd[$i] * $times[$i]['ExecutionTime'];
-				}
-			}			
-			$downtime += $avaibleProd[4];
-			$plan1[] = array(
-				'demandId' => 1,
-				'productId' => 4,
-				'count' => $downtime
-			);
-			
-			return $plan1;
-		}
+		return $supBlock;		
 	}
 	
 	/**
