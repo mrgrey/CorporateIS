@@ -99,4 +99,60 @@
 			$stmt = $db->query($select);			
 			return $stmt->fetchAll();
 		}
+		
+		/**
+		 * 
+		 * Получение Id продукта последнего выполненного блока
+		 */
+		public function  getLastBlockProductId(){
+			$db = $this->getDefaultAdapter();
+			$select = $db->select()
+				->from($this->_name)
+				->where('Date > 0')
+				->order('Date DESC')
+				;
+			$stmt = $db->query($select);
+			$result = $stmt->fetch();
+			return $result['ProductID'];
+		}
+		
+		/**
+		 * 
+		 * Изменение блока
+		 * @param int $id
+		 * @param int $date
+		 * @param int $count
+		 * @param int $modifier
+		 */
+		public function setOrderProduct($id, $date, $count, $modifier){
+			$where['ID = ?'] = $id;
+			$data = array(
+				'Date' 		=> $date,
+				'Count'		=> $count,
+				'Modifier'	=> $modifier
+			); 			
+			return $this->update($data, $where);
+		}
+		
+		/**
+		 * 
+		 * Создание нового блока
+		 * @param int $orderId
+		 * @param int $productId
+		 * @param int $date
+		 * @param int $count
+		 * @param int $modifier
+		 */
+		public function newOrderProduct($orderId, $productId, $date, $count, $modifier){
+			$data = array(
+				'OrderID'	=> $orderId,
+				'ProductID'	=> $productId,
+				'Date' 		=> $date,
+				'Count'		=> $count,
+				'Modifier'	=> $modifier
+				);
+			$result = $this->insert($data);
+			return $result;
+		}
+		
 	}

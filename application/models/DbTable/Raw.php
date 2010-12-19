@@ -5,6 +5,40 @@
 		
 		/**
 		 * 
+		 * Очищение склада от сырья
+		 */
+		public function setEmpty(){
+			$data = array(
+				'Count' => 0
+			);
+			
+			$where['ID > ?'] = 0;
+			
+			$this->update($data, $where);
+		}
+		
+		/**
+		 * 
+		 * Трата материалов
+		 * @param mixed $products
+		 */
+		public function spendRaw($products){
+			$tableRawRequment = new Application_Model_DbTable_RawRequiment();
+			$rawRequiments = $tableRawRequment->getRequiments();			
+			foreach ($rawRequiments as $requiments) $count[$requiments['RawID']] += $requiments['RawCount'] * $products[$requiments['ProductID']];
+			$select = $this->select();
+			foreach ($this->fetchAll($select) as $row) {
+				$data = array('Count' => $row['Count'] - $count[$row['ID']]);
+				$where['ID = ?'] = $row['ID'];
+				$this->update($data, $where);
+			}			
+			return TRUE;
+		}
+
+		
+		//Не факт, что нижеследующие функции понадобятся
+		/**
+		 * 
 		 * Получаем список всех материалов
 		 */
 		public function getListOfMaterials(){
@@ -27,14 +61,4 @@
 			
 			return $res['Count']; 
 		}
-		
-		public function setEmpty(){
-			$data = array(
-				'Count' => 0
-			);
-			
-			$where['ID > ?'] = 0;
-			
-			$this->update($data, $where);
-		}    
 	}

@@ -6,7 +6,7 @@ class Simulation{
 	 * @param string $date
 	 * @return bool
 	 */
-	public function niceStart($date){ //$date не используетс€, но оставл€ю, чтобы не было проблем с интеграцией
+	public function niceStart($date){ 
 		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
 		
 		$tables = array(
@@ -304,7 +304,7 @@ class Simulation{
 					//при этом следует учесть, что текущий блок не должен производитьс€ более одного дн€
 					if (($sortedBlock['ProductID'] == $block['ProductID']) && ($block['Count']*$block['ExecutionTime'] < 86400)){						
 						//провер€ем на то, что отсортированный блок должен быть выполнен позже текущего
-						if ($sortedBlock[DateExecution] + $sortedBlock['Time'] > $sortedBlock[DateExecution] + $sortedBlock['Time']){
+						if ($sortedBlock[DateExecution] + $sortedBlock['Time'] > $block[DateExecution] + $block['Time']){
 							//запихиваем текущий блок на место отсортированного
 							$list = array_merge(
 								array_slice($list, 0, $i-1),
@@ -333,10 +333,55 @@ class Simulation{
 				if ($flag1) $list[] = $block;
 			}			
 		}//end of foreach 1
-		//»з получившегос€ списка вз€ть 1 день
-		
-		return $list;		
+		if ($modifiedBlock) $list = array_merge(array($modifiedBlock), $list);
+		//»з получившегос€ списка составить план на 1 день
+		//провер€ем сколько продуктов можно изготовить из имеющихс€ в наличии материалов
+		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
+		$avaibleProducts = $tableRawRequiments->getAvaibleProductCount();
+		//ѕолучаем данные о продукте в последнем блоке предыдущего дн€
+		$prevProductId = $tableOrderProduct->getLastBlockProductId();
+		$time = 86400; //счетчик времени
+		$manufacturedProducts = array(  //счетчик произведенных товаров
+			1 => 0,
+			2 => 0,
+			3 => 0
+			);
+		foreach ($list as $block){
+			//ќпредел€ем необходимость перенастройки оборудовани€
+			$time = ($block['ProductID'] == $prevProductId)
+				? $time
+				: $time - $block['RetunningTime'];
+			//ќпредел€ем сколько товаров из блока возможно выполнить			
+			$count = ($avaibleProducts[$block['ProductID']] > $block['Count'])
+				? $block['Count']
+				: $avaibleProducts[$block['ProductID']];
+			//ќпредел€ем сколько товаров из возможных возможно выполнить в текущих сутках
+			$modifier = 0;
+			if ($count * $block['ExecutionTime'] > $time + $block['Modifier']){
+				$count = floor(($time + $block['Modifier']) / $block['ExecutionTime']);
+				$modifier = ($time + $block['Modifier']) % $block['ExecutionTime'];
+			}
+			$count = ($count * $block['ExecutionTime'] > $time)
+				?  floor($time / $block['ExecutionTime'])
+				: $count;			
+			//ќбновл€ем статус блока на выполненный путем присваивани€ даты
+			$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
+			//—оздаем новый блок, если текущий не модет быть выполнен полностью
+			if ($count != $block['Count']) $tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
+			//—читаем остаток времени
+			$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
+			//–ассчитываем результаты
+			$manufacturedProducts['ProductId'] += $count;
+			$plan[] = array('demandId' => $block['OrderID'],'productId' => $block['ProductID'], 'count' => $count);
+		}	
+		//”бираем потраченное сырье из Ѕƒ
+		$tableRaw = new Application_Model_DbTable_Raw();
+		$tableRaw->spendRaw($manufacturedProducts);
+		//ƒобавл€ем возможный простой оборудовани€
+		if ($time != 0) $plan[] = array('demandId' => 0,'productId' => 4, 'count' => $time);
+		return $plan;			
 	}
+	
 	
 	/**
 	 * ”знаем сколько можно произвести из оставшихс€ материалов
