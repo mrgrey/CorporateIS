@@ -34,52 +34,28 @@ class Simulation{
 	 */
 	public function getShoppingList($date){
 		$date = strtotime($date);
-		
+		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		//Получаем массив невыполненных блоков
+		$ordProds = $tableOrderProduct->getWaitingList();
+		//Т.к. поставка происходит раз в 7 дней спустя 3 дня после подачи заявки, то небоходимо эмулировать 10 дней 
+		for ($i = 1; $i < 11; $i++){
+			//Создаем план
+			$list = $this->getPlan($ordProds);
+			$time = 86400; //счетчик времени
+			//Пробегаем по плану, набираем план на 1 день и определяем первый блок следующего дня
+			foreach ($list as $block){
+				
+			}
+		}
 		return $shoppingList;
 	}
 	
 	/**
 	 * 
-	 * Прием материалов
-	 * @param string $date
-	 * @param int $deliveryId
-	 * @param mixed $materials
-	 * @return bool
+	 * Собирает план из переданных блоков
+	 * @param unknown_type $ordProds
 	 */
-	public function receivingMaterials($date, $deliveryId, $materials){
-		$date = $this->convertDate($date);
-		$tableDelivery = new Application_Model_DbTable_Delivery();
-		$tableDelivery->updateDelivery($date, $deliveryId);
-		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
-		
-		$materials = range(1, 12);
-		
-		for ($i = 0; $i < 12; $i++)
-		{
-			$RawId=$i+1;
-			$tableNomenclature->insertIntoNomenclature($deliveryId, $RawId, $materials[i]);
-		}
-		/*foreach ($materials as $material){
-			$tableNomenclature->insertIntoNomenclature($deliveryId, $material['RawID'], $material['Count']);
-		}*/
-		return true;
-	}
-	
-	/**
-	 * 
-	 * Получение плана на день InProgress
-	 * @param string $date
-	 * @return mixed
-	 */
-	public function getPlan($date){
-		$date = strtotime($date);
-		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
-		//Получаем массив невыполненных блоков
-		$ordProds = $tableOrderProduct->getWaitingList();
-		//Сортировка вставками (Insertion sort) — Сложность алгоритма: O(n2); определяем где текущий элемент должен находиться в упорядоченном списке и вставляем его туда
-		//Ищу опорный элемент, им будет первый элемент массива блоков, который с большой долей вероятности имеет максимально возможный приоритет
-		$list[] = $ordProds[0];		
-		//Собираю список
+	private function getPlan($ordProds){
 		foreach ($ordProds as $block){ //foreach 1
 			/*Каждый $block имеет следующую структуру:
 			 * array(
@@ -139,6 +115,50 @@ class Simulation{
 			}			
 		}//end of foreach 1
 		if ($modifiedBlock) $list = array_merge(array($modifiedBlock), $list);
+		return $list;
+	}
+	
+	/**
+	 * 
+	 * Прием материалов
+	 * @param string $date
+	 * @param int $deliveryId
+	 * @param mixed $materials
+	 * @return bool
+	 */
+	public function receivingMaterials($date, $deliveryId, $materials){
+		$date = $this->convertDate($date);
+		$tableDelivery = new Application_Model_DbTable_Delivery();
+		$tableDelivery->updateDelivery($date, $deliveryId);
+		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
+		
+		$materials = range(1, 12);
+		
+		for ($i = 0; $i < 12; $i++)
+		{
+			$RawId=$i+1;
+			$tableNomenclature->insertIntoNomenclature($deliveryId, $RawId, $materials[i]);
+		}
+		/*foreach ($materials as $material){
+			$tableNomenclature->insertIntoNomenclature($deliveryId, $material['RawID'], $material['Count']);
+		}*/
+		return true;
+	}
+	
+	/**
+	 * 
+	 * Получение плана на день InProgress
+	 * @param string $date
+	 * @return mixed
+	 */
+	public function getDayPlan($date){
+		$date = strtotime($date);
+		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		//Получаем массив невыполненных блоков
+		$ordProds = $tableOrderProduct->getWaitingList();
+		//Сортировка вставками (Insertion sort) — Сложность алгоритма: O(n2); определяем где текущий элемент должен находиться в упорядоченном списке и вставляем его туда
+		//Собираю список
+		$list = $this->getPlan($ordProds);		
 		//Из получившегося списка составить план на 1 день
 		//проверяем сколько продуктов можно изготовить из имеющихся в наличии материалов
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
