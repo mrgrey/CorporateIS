@@ -28,23 +28,48 @@ class Simulation{
 	
 	/**
 	 * 
-	 * Формирование заявки на закупку
+	 * Формирование заявки на закупку InProgress
 	 * @param string $date
 	 * @return mixed
 	 */
 	public function getShoppingList($date){
 		$date = strtotime($date);
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		$tableRawRequments = new Application_Model_DbTable_RawRequiment();
 		//Получаем массив невыполненных блоков
 		$ordProds = $tableOrderProduct->getWaitingList();
+		$prevProductId = $tableOrderProduct->getLastBlockProductId();
 		//Т.к. поставка происходит раз в 7 дней спустя 3 дня после подачи заявки, то небоходимо эмулировать 10 дней 
 		for ($i = 1; $i < 11; $i++){
 			//Создаем план
 			$list = $this->getPlan($ordProds);
-			$time = 86400; //счетчик времени
-			//Пробегаем по плану, набираем план на 1 день и определяем первый блок следующего дня
+			$time += 86400; //счетчик времени
+			//Пробегаем по плану, считам продукты на 1 день и определяем первый блок следующего дня
+			if (isset($nextDayFirstBlock)) unset($nextDayFirstBlock);
+			$j = 0;
+			unset($tempList);
 			foreach ($list as $block){
-				
+				if ($time > 0){
+					//Считаем количество продуктов
+					$products[$block['ProductID']] += $block['Count'];
+					$time = $time - $block['Count'];
+					if ($block['ProductID'] != $prevProductId) $time = $time - $block['RetunningTime'];
+					$prevProductId = $block['ProductID'];
+				}else{
+					//Определяем первый блок следующего дня
+					if ((isset($nextDayFirstBlock)) && ($block['DateExecution'] + $block['Time'] < $nextDayFirstBlock['DateExecution'] + $nextDayFirstBlock['Time'])){
+						$tempList[] = $nextDayFirstBlock;
+						$nextDayFirstBlock = $block;
+					}else{
+						if(!(isset($nextDayFirstBlock))){
+							$nextDayFirstBlock = $block;
+						}else{
+							$tempList[] = $block;
+						}						 
+					}											
+				}
+				if (isset($nextDayFirstBlock)) $ordProds = array_merge(array($nextDayFirstBlock), $tempList);
+				$j++;
 			}
 		}
 		return $shoppingList;
@@ -147,7 +172,7 @@ class Simulation{
 	
 	/**
 	 * 
-	 * Получение плана на день InProgress
+	 * Получение плана на день
 	 * @param string $date
 	 * @return mixed
 	 */
@@ -195,6 +220,7 @@ class Simulation{
 			if ($count != $block['Count']) $tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
 			//Считаем остаток времени
 			$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
+			$prevProductId = $block['ProductID'];
 			//Рассчитываем результаты
 			$manufacturedProducts['ProductId'] += $count;
 			$plan[] = array('demandId' => $block['OrderID'],'productId' => $block['ProductID'], 'count' => $count);
