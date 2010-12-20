@@ -55,7 +55,7 @@ class FrontOffice{
 		
 		$previousOrderExTime = $previousOrder
 			? $previousOrder['ExecutionTime']
-			: $date + 300 * 864; //!!!Поменять значение в зависимости от даты первой поставки материалов
+			: $date + 3 * 86400;
 		
 		$exTime = max($previousOrderExTime, $date);
 
