@@ -50,5 +50,26 @@
 	    	}
 	    	return TRUE;
 	    }
+	    
+	    public function updateDeliveryNomenclature($deliveryId, $materials){
+	    	$db = $this->getDefaultAdapter();
+	    	$select = $db->select()->where('DeliveryID = ?', $deliveryId);
+	    	$noms = $db->query($select)->fetchAll();
+	    	foreach ($noms as $nom) {
+	    		$data = array(
+	    			'RealCount'	=> $materials[$nom['RawID'] + 1]
+	    			);
+	    		$where = $nom['ID'];
+	    		$this-> update($data, $where);
+	    	}
+	    	/*for ($i = 0; $i < 12; $i++) {
+	    		$data = array(
+	    			'RealCount'	=> $material
+	    			);
+	    			$where['ID = ?'] = ???????????
+	    		$this->update($data, $where);
+	    	}*/
+	    	return TRUE;
+	    }
 	}
 	

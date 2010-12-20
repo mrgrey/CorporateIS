@@ -40,13 +40,12 @@
 		 * @param int $date
 		 * @param int $deliveryId
 		 */
-		public function updateDelivery($date, $deliveryId){
-			$db = $this->getDefaultAdapter();			
+		public function setDelivery($date, $deliveryId){						
 			$data = array(
 				'RealDate' => $date
 			);			
 			$where['ID = ?'] = $deliveryId;			
-			$db->update($this->_name, $data, $where);
+			return $this->update($data, $where);
 		}
 				
 	}

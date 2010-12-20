@@ -157,22 +157,11 @@ class Simulation{
 	 * @return bool
 	 */
 	public function receivingMaterials($date, $deliveryId, $materials){
-		$date = $this->convertDate($date);
+		$date = strtotime($date);
 		$tableDelivery = new Application_Model_DbTable_Delivery();
-		$tableDelivery->updateDelivery($date, $deliveryId);
+		$tableDelivery->setDelivery($date, $deliveryId);
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
-		
-		$materials = range(1, 12);
-		
-		for ($i = 0; $i < 12; $i++)
-		{
-			$RawId=$i+1;
-			$tableNomenclature->insertIntoNomenclature($deliveryId, $RawId, $materials[i]);
-		}
-		/*foreach ($materials as $material){
-			$tableNomenclature->insertIntoNomenclature($deliveryId, $material['RawID'], $material['Count']);
-		}*/
-		return true;
+		return $tableNomenclature->updateDeliveryNomenclature($deliveryId, $materials);			
 	}
 	
 	/**
