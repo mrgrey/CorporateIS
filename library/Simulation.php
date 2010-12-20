@@ -185,7 +185,7 @@ class Simulation{
 		//»з получившегос€ списка составить план на 1 день
 		//провер€ем сколько продуктов можно изготовить из имеющихс€ в наличии материалов
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
-		$avaibleProducts = $tableRawRequiments->getAvaibleProductCount();
+		$availableProducts = $tableRawRequiments->getAvaibleProductCount();
 		
 		//ѕолучаем данные о продукте в последнем блоке предыдущего дн€
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
@@ -198,7 +198,7 @@ class Simulation{
 				$time -= $block['RetunningTime']
 							
 			//ќпредел€ем сколько товаров из блока возможно выполнить			
-			$count = min($avaibleProducts[$block['ProductID']], $block['Count']);
+			$count = min($availableProducts[$block['ProductID']], $block['Count']);
 				
 			//ќпредел€ем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
