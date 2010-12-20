@@ -95,7 +95,7 @@
 				->join('Product', 'OrderProduct.ProductID = Product.ID', array('ExecutionTime', 'RetunningTime'))
 				->join('OrderType', 'Order.OrderTypeID = OrderType.ID', array('Time'))
 				->where('Date = 0')
-				->order('ID DESC');
+				;
 			$stmt = $db->query($select);			
 			return $stmt->fetchAll();
 		}
@@ -110,6 +110,7 @@
 				->from($this->_name)
 				->where('Date > 0')
 				->order('Date DESC')
+				->limit(1)				
 				;
 			$stmt = $db->query($select);
 			$result = $stmt->fetch();
@@ -150,9 +151,8 @@
 				'Date' 		=> $date,
 				'Count'		=> $count,
 				'Modifier'	=> $modifier
-				);
-			$result = $this->insert($data);
-			return $result;
+				);			
+			return $this->insert($data);
 		}
 		
 	}
