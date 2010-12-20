@@ -45,14 +45,18 @@ class Simulation{
 			$time += 86400; //счетчик времени
 			//ѕробегаем по плану, считам продукты на 1 день и определ€ем первый блок следующего дн€
 			if (isset($nextDayFirstBlock)) unset($nextDayFirstBlock);
-			$j = 0;
 			unset($tempList);
 			foreach ($list as $block){
 				if ($time > 0){
 					//—читаем количество продуктов
-					if ($i > 3) $products[$block['ProductID']] += $block['Count'];
-					$time = $time - $block['Count']*$block['ExecutionTime'];
-					if ($block['ProductID'] != $prevProductId) $time = $time - $block['RetunningTime'];
+					if ($i > 3)
+						$products[$block['ProductID']] += $block['Count'];
+					
+					$time -= $block['Count']*$block['ExecutionTime'];
+					
+					if ($block['ProductID'] != $prevProductId)
+						$time -= $block['RetunningTime'];
+					
 					$prevProductId = $block['ProductID'];
 				}else{
 					//ќпредел€ем первый блок следующего дн€
@@ -67,7 +71,6 @@ class Simulation{
 						}						 
 					}											
 				}
-				$j++;
 			}
 			$ordProds = isset($nextDayFirstBlock)
 				? array_merge(array($nextDayFirstBlock), $tempList)
