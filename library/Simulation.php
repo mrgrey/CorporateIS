@@ -52,7 +52,7 @@ class Simulation{
 					if ($i > 3)
 						$products[$block['ProductID']] += $block['Count'];
 					
-					$time -= $block['Count']*$block['ExecutionTime'];
+					$time -= $block['Count'] * $block['ExecutionTime'];
 					
 					if ($block['ProductID'] != $prevProductId)
 						$time -= $block['RetunningTime'];
@@ -190,10 +190,12 @@ class Simulation{
 			$time = ($block['ProductID'] == $prevProductId)
 				? $time
 				: $time - $block['RetunningTime'];
+				
 			//Определяем сколько товаров из блока возможно выполнить			
 			$count = ($avaibleProducts[$block['ProductID']] > $block['Count'])
 				? $block['Count']
 				: $avaibleProducts[$block['ProductID']];
+				
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
 			if ($count * $block['ExecutionTime'] > $time + $block['Modifier']){
@@ -201,24 +203,36 @@ class Simulation{
 				$modifier = ($time + $block['Modifier']) % $block['ExecutionTime'];
 			}
 			$count = ($count * $block['ExecutionTime'] > $time)
-				?  floor($time / $block['ExecutionTime'])
+				? floor($time / $block['ExecutionTime'])
 				: $count;			
 			//Обновляем статус блока на выполненный путем присваивания даты
 			$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
 			//Создаем новый блок, если текущий не модет быть выполнен полностью
-			if ($count != $block['Count']) $tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
+			if ($count != $block['Count'])
+			
+				$tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
 			//Считаем остаток времени
 			$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
 			$prevProductId = $block['ProductID'];
+			
 			//Рассчитываем результаты
 			$manufacturedProducts['ProductId'] += $count;
-			$plan[] = array('demandId' => $block['OrderID'],'productId' => $block['ProductID'], 'count' => $count);
+			$plan[] = array(
+				'demandId'  => $block['OrderID'],
+				'productId' => $block['ProductID'], 
+				'count'     => $count
+			);
 		}	
 		//Убираем потраченное сырье из БД
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->spendRaw($manufacturedProducts);
 		//Добавляем возможный простой оборудования
-		if ($time != 0) $plan[] = array('demandId' => 0,'productId' => 4, 'count' => $time);
+		if ($time != 0) 
+			$plan[] = array(
+				'demandId'  => 0,
+				'productId' => 4, 
+				'count'     => $time
+			);
 		return $plan;			
 	}
 				
