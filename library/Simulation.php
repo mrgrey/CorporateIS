@@ -45,14 +45,18 @@ class Simulation{
 			$time += 86400; //счетчик времени
 			//Пробегаем по плану, считам продукты на 1 день и определяем первый блок следующего дня
 			if (isset($nextDayFirstBlock)) unset($nextDayFirstBlock);
-			$j = 0;
 			unset($tempList);
 			foreach ($list as $block){
 				if ($time > 0){
 					//Считаем количество продуктов
-					if ($i > 3) $products[$block['ProductID']] += $block['Count'];
-					$time = $time - $block['Count']*$block['ExecutionTime'];
-					if ($block['ProductID'] != $prevProductId) $time = $time - $block['RetunningTime'];
+					if ($i > 3)
+						$products[$block['ProductID']] += $block['Count'];
+					
+					$time -= $block['Count']*$block['ExecutionTime'];
+					
+					if ($block['ProductID'] != $prevProductId)
+						$time -= $block['RetunningTime'];
+					
 					$prevProductId = $block['ProductID'];
 				}else{
 					//Определяем первый блок следующего дня
@@ -67,7 +71,6 @@ class Simulation{
 						}						 
 					}											
 				}
-				$j++;
 			}
 			$ordProds = isset($nextDayFirstBlock)
 				? array_merge(array($nextDayFirstBlock), $tempList)
@@ -107,41 +110,33 @@ class Simulation{
 				$modifiedBlock = $block;
 			}else{
 				//не повезло и придется искать место для этого блока
-				$flag1 = TRUE; //флаг, который будет определять нашли ли мы место для этого блока
+				$inserted = false; //флаг, который будет определять нашли ли мы место для этого блока
 				$flag2 = FALSE; //флаг, который определяет очередь блоков с одинаковыми продуктами
 				$i = 0; //счетчик позиции в листе
+				$list = array();
 				foreach ($list as $sortedBlock){ // foreach 2
 					//Если блоки со схожим продуктом уже есть в очереди, то текущий блок надо поставить следом за ними,
 					//при этом следует учесть, что текущий блок не должен производиться более одного дня
-					if (($sortedBlock['ProductID'] == $block['ProductID']) && ($block['Count']*$block['ExecutionTime'] < 86400)){						
+					if (($sortedBlock['ProductID'] == $block['ProductID']) && ($block['Count'] * $block['ExecutionTime'] < 86400)){						
 						//проверяем на то, что отсортированный блок должен быть выполнен позже текущего
-						if ($sortedBlock[DateExecution] + $sortedBlock['Time'] > $block[DateExecution] + $block['Time']){
+						if ($sortedBlock['DateExecution'] + $sortedBlock['Time'] > $block['DateExecution'] + $block['Time']){
 							//запихиваем текущий блок на место отсортированного
-							$list = array_merge(
-								array_slice($list, 0, $i-1),
-								array($block),
-								array_slice($list, $i)
-								);
-							$flag1 = FALSE;
+							array_splice($list, $i, 0, $block);
+							$inserted = true;
 							break;
 						}
 						$flag2 = TRUE;
-					}else{
-						if ($flag2){
-							//запихиваем текущий блок на место отсортированного
-							$list = array_merge(
-								array_slice($list, 0, $i-1),
-								array($block),
-								array_slice($list, $i)
-								);
-							$flag1 = FALSE;
-							break;
-						}
+					} else if ($flag2) {
+						//запихиваем текущий блок на место отсортированного
+						array_splice($list, $i, 0, $block);
+						$inserted = true;
+						break;
 					}
 					$i++;										
 				}//end of foreach 2
 				//добавить элемент было некуда, запихиваем в конец очереди
-				if ($flag1) $list[] = $block;
+				if (!$inserted)
+					$list[] = $block;
 			}			
 		}//end of foreach 1
 		if ($modifiedBlock) $list = array_merge(array($modifiedBlock), $list);
