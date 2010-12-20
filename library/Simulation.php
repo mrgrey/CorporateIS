@@ -226,5 +226,7 @@ class Simulation{
 		if ($time != 0) $plan[] = array('demandId' => 0,'productId' => 4, 'count' => $time);
 		return $plan;			
 	}
+	
+		
 				
 }
