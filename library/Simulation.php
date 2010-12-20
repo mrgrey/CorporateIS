@@ -51,7 +51,7 @@ class Simulation{
 				if ($time > 0){
 					//Считаем количество продуктов
 					if ($i > 3) $products[$block['ProductID']] += $block['Count'];
-					$time = $time - $block['Count'];
+					$time = $time - $block['Count']*$block['ExecutionTime'];
 					if ($block['ProductID'] != $prevProductId) $time = $time - $block['RetunningTime'];
 					$prevProductId = $block['ProductID'];
 				}else{
