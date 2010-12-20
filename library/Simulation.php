@@ -60,14 +60,14 @@ class Simulation{
 					$prevProductId = $block['ProductID'];
 				}else{
 					//Определяем первый блок следующего дня
-					if ((isset($nextDayFirstBlock)) && ($block['DateExecution'] + $block['Time'] < $nextDayFirstBlock['DateExecution'] + $nextDayFirstBlock['Time'])){
+					if (isset($nextDayFirstBlock) && ($block['DateExecution'] + $block['Time'] < $nextDayFirstBlock['DateExecution'] + $nextDayFirstBlock['Time'])){
 						$tempList[] = $nextDayFirstBlock;
 						$nextDayFirstBlock = $block;
 					}else{
-						if(!(isset($nextDayFirstBlock))){
-							$nextDayFirstBlock = $block;
-						}else{
+						if(isset($nextDayFirstBlock)){
 							$tempList[] = $block;
+						}else{
+							$nextDayFirstBlock = $block;
 						}						 
 					}											
 				}
@@ -78,8 +78,10 @@ class Simulation{
 		}
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
 		$shoppingList = $tableRawRequiments->getShoppingList($products);
+		
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$tableDelivery->newDelivery($date + 300, $shoppingList);
+		
 		return $shoppingList;
 	}
 	
@@ -139,7 +141,9 @@ class Simulation{
 					$list[] = $block;
 			}			
 		}//end of foreach 1
-		if ($modifiedBlock) $list = array_merge(array($modifiedBlock), $list);
+		if ($modifiedBlock)
+			$list = array_merge(array($modifiedBlock), $list);
+			
 		return $list;
 	}
 	
@@ -153,8 +157,10 @@ class Simulation{
 	 */
 	public function receivingMaterials($date, $deliveryId, $materials){
 		$date = strtotime($date);
+		
 		$tableDelivery = new Application_Model_DbTable_Delivery();
 		$tableDelivery->setDelivery($date, $deliveryId);
+		
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
 		return $tableNomenclature->updateDeliveryNomenclature($deliveryId, $materials);			
 	}
@@ -168,33 +174,31 @@ class Simulation{
 	public function getDayPlan($date){
 		$date = strtotime($date);
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
+		
 		//Получаем массив невыполненных блоков
 		$ordProds = $tableOrderProduct->getWaitingList();
+		
 		//Сортировка вставками (Insertion sort) — Сложность алгоритма: O(n2); определяем где текущий элемент должен находиться в упорядоченном списке и вставляем его туда
 		//Собираю список
 		$list = $this->getPlan($ordProds);		
+		
 		//Из получившегося списка составить план на 1 день
 		//проверяем сколько продуктов можно изготовить из имеющихся в наличии материалов
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
 		$avaibleProducts = $tableRawRequiments->getAvaibleProductCount();
+		
 		//Получаем данные о продукте в последнем блоке предыдущего дня
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
 		$time = 86400; //счетчик времени
-		$manufacturedProducts = array(  //счетчик произведенных товаров
-			1 => 0,
-			2 => 0,
-			3 => 0
-			);
+		$manufacturedProducts = array_fill(1, 3, 0);  //счетчик произведенных товаров
+			
 		foreach ($list as $block){
 			//Определяем необходимость перенастройки оборудования
-			$time = ($block['ProductID'] == $prevProductId)
-				? $time
-				: $time - $block['RetunningTime'];
-				
+			if($block['ProductID'] != $prevProductId)
+				$time -= $block['RetunningTime']
+							
 			//Определяем сколько товаров из блока возможно выполнить			
-			$count = ($avaibleProducts[$block['ProductID']] > $block['Count'])
-				? $block['Count']
-				: $avaibleProducts[$block['ProductID']];
+			$count = min($avaibleProducts[$block['ProductID']], $block['Count']);
 				
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
@@ -205,12 +209,14 @@ class Simulation{
 			$count = ($count * $block['ExecutionTime'] > $time)
 				? floor($time / $block['ExecutionTime'])
 				: $count;			
+				
 			//Обновляем статус блока на выполненный путем присваивания даты
 			$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
+			
 			//Создаем новый блок, если текущий не модет быть выполнен полностью
 			if ($count != $block['Count'])
-			
 				$tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
+				
 			//Считаем остаток времени
 			$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
 			$prevProductId = $block['ProductID'];
@@ -226,13 +232,16 @@ class Simulation{
 		//Убираем потраченное сырье из БД
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->spendRaw($manufacturedProducts);
+		
 		//Добавляем возможный простой оборудования
-		if ($time != 0) 
+		if ($time != 0) {
 			$plan[] = array(
 				'demandId'  => 0,
 				'productId' => 4, 
 				'count'     => $time
 			);
+		}
+		
 		return $plan;			
 	}
 				
