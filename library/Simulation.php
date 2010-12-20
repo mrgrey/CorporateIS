@@ -35,7 +35,6 @@ class Simulation{
 	public function getShoppingList($date){
 		$date = strtotime($date);
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
-		$tableRawRequments = new Application_Model_DbTable_RawRequiment();
 		//Получаем массив невыполненных блоков
 		$ordProds = $tableOrderProduct->getWaitingList();
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
@@ -51,7 +50,7 @@ class Simulation{
 			foreach ($list as $block){
 				if ($time > 0){
 					//Считаем количество продуктов
-					$products[$block['ProductID']] += $block['Count'];
+					if ($i > 3) $products[$block['ProductID']] += $block['Count'];
 					$time = $time - $block['Count'];
 					if ($block['ProductID'] != $prevProductId) $time = $time - $block['RetunningTime'];
 					$prevProductId = $block['ProductID'];
@@ -68,10 +67,16 @@ class Simulation{
 						}						 
 					}											
 				}
-				if (isset($nextDayFirstBlock)) $ordProds = array_merge(array($nextDayFirstBlock), $tempList);
 				$j++;
 			}
+			$ordProds = isset($nextDayFirstBlock)
+				? array_merge(array($nextDayFirstBlock), $tempList)
+				: $tempList;
 		}
+		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
+		$shoppingList = $tableRawRequiments->getShoppingList($products);
+		$tableDelivery = new Application_Model_DbTable_Delivery();
+		$tableDelivery->newDelivery($date + 300, $shoppingList);
 		return $shoppingList;
 	}
 	

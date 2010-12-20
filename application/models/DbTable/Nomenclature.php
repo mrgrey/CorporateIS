@@ -17,33 +17,38 @@
 			
 	    /**
 	     * 
-	     * Получаем все заказы нужного материала
-	     * @param int $materialID
+	     * Получение среднеквадратичного отклонения по номенклатуре поставок
 	     */
-    	public function getNomenclatureForMaterial($materialID){
-    		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
-    		$select = $db->select()->from($this->_name)->where('RawID = ?', $materialID);
-    		$stmt = $db->query($select);
-    		$result = $stmt->fetchAll();
-    		return $result;
-    	}
-    	
-    	public function insertIntoNomenclature($deliveryId, $rawId, $count){
-    		$db = Zend_Db_Table_Abstract::getDefaultAdapter();
-    		$select = $db->select()
-    			->from($this->_name)
-    			->where('DeliveryID = ?', $deliveryId)
-    			->where('RawID = ?', $rawId);
-				
-    		$stmt = $db->query($select);
-    		$res = $stmt->fetch();
-			
-    		$where['ID = ?'] = $res['ID'];
-    		$data = array(
-				'RealCount' => $count
-			);
-			
-    		$db->update($this->_name, $data, $where);		
-    	}
+	    public function getSigmaN(){
+	    	$db = $this->getDefaultAdapter();
+	    	$select = $db->select();
+	    	$stmt = $db->query($select);
+	    	$nomenclature = $stmt->fetchAll();
+	    	$n = count($nomenclature)/12;
+	    	foreach ($nomenclature as $nom){
+	    		$realCount = ($nom['RealCount'] != 0)
+	    			? $nom['RealCount']
+	    			: $nom['Count'];
+	    		$sum[$nom['RawID']] += ($nom['Count'] - $realCount)*($nom['Count'] - $realCount)/$n; 
+	    		$count[$nom['RawID']] += $nom['Count'];
+	    	}	    	
+	    	for ($i = 1; $i <13; $i++){
+	    		$result[$i] = sqrt($sum[$i]/$count[$i]);
+	    	}
+	    	return $result;
+	    }
+	    
+	    public function newShopList($deliveryId, $shopList){
+	    	for ($i = 1; $i < 13; $i++){
+	    		$data = array(
+	    			'DeliveryID' => $deliveryId,
+	    			'RawID' 	 => $i,
+	    			'Count'		 => $shopList[$i],
+	    			'RealCount'	 => 0
+	    			);
+	    		$this->insert($data);
+	    	}
+	    	return TRUE;
+	    }
 	}
 	

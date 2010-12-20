@@ -41,4 +41,22 @@
     		return $this->fetchAll($select);
     	}
     	
+    	/**
+    	 * 
+    	 * Определяет количество материалов, необходимов для производства переданных продуктов, с учетом отклонений
+    	 * @param unknown_type $products
+    	 */
+    	public function getShoppingList($products){
+    		$requiments = $this->getRequiments();
+    		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
+    		$tableDelivery = new Application_Model_DbTable_Delivery();
+    		$sigmaT = $tableDelivery->getSigmaT();
+    		$sigmaN = $tableNomenclature->getSigmaN();
+    		$k = 1 + $sigmaN + $sigmaT;
+    		foreach ($requiments as $row){
+    			$result[$raw['RawID']] += $k * $products[$row['ProductID']] * $row['RawCount'];
+    		}
+    		return $result;
+    	}
+    	
 	}
