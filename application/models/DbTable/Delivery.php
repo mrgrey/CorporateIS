@@ -9,7 +9,7 @@
 		 */
 		public function getSigmaT(){
 			$db = $this->getDefaultAdapter();
-			$select = $db->select();
+			$select = $db->select()->from($this->_name);
 			$stmt = $db->query($select);
 			$deliveries = $stmt->fetchAll();
 			$n = count($deliveries);

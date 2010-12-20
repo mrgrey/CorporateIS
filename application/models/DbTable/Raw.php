@@ -34,5 +34,18 @@
 			}			
 			return TRUE;
 		}
-					
+
+		public function addRaw($materials){
+			$db = $this->getDefaultAdapter();
+			$select = $db->select()->from($this->_name);
+			$rowset = $db->query($select)->fetchAll();
+			for ($i = 0; $i < 12; $i++) {
+				$data = array(
+					'Count' => $rowset[$i]['Count'] + $materials[$i]
+					);
+				$where['ID = ?'] = $rowset[$i]['ID'];
+				$this->update($data, $where);
+			} 
+			return TRUE;
+		}
 	}

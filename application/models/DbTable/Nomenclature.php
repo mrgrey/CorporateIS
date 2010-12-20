@@ -21,7 +21,7 @@
 	     */
 	    public function getSigmaN(){
 	    	$db = $this->getDefaultAdapter();
-	    	$select = $db->select();
+	    	$select = $db->select()->from($this->_name);
 	    	$stmt = $db->query($select);
 	    	$nomenclature = $stmt->fetchAll();
 	    	$n = count($nomenclature)/12;
@@ -53,7 +53,7 @@
 	    
 	    public function updateDeliveryNomenclature($deliveryId, $materials){
 	    	$db = $this->getDefaultAdapter();
-	    	$select = $db->select()->where('DeliveryID = ?', $deliveryId);
+	    	$select = $db->select()->from($this->_name)->where('DeliveryID = ?', $deliveryId);
 	    	$noms = $db->query($select)->fetchAll();
 	    	foreach ($noms as $nom) {
 	    		$data = array(
@@ -62,6 +62,7 @@
 	    		$where = $nom['ID'];
 	    		$this-> update($data, $where);
 	    	}
+	    	$tableRaw = new Application_Model_DbTable_Raw();	    	
 	    	/*for ($i = 0; $i < 12; $i++) {
 	    		$data = array(
 	    			'RealCount'	=> $material
@@ -69,7 +70,7 @@
 	    			$where['ID = ?'] = ???????????
 	    		$this->update($data, $where);
 	    	}*/
-	    	return TRUE;
+	    	return $tableRaw->addRaw($materials);
 	    }
 	}
 	
