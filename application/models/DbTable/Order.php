@@ -25,11 +25,11 @@
  			$select = $db->select()
  				->from($this->_name)
  				->where('OrderTypeID > 1')
- 				->order('ID DESC');
+ 				->order('ID DESC')
+				->limit(1);
 				
      		$stmt = $db->query($select);
-     		$result = $stmt->fetch();     		
-     		return $result;
+     		return $stmt->fetch();
 		}	
 		
 		/**

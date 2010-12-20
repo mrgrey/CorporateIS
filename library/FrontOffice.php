@@ -13,7 +13,7 @@ class FrontOffice{
 	 */
 	public function newOrder($date, $customer, $product1count, $product2count, $product3count){		
 		$date = strtotime($date);
-		$products = array(
+		$productsCount = array(
 			1	=> $product1count,
 			2	=> $product2count,
 			3	=> $product3count
@@ -27,7 +27,7 @@ class FrontOffice{
 		}
 		
 		//Расчитываем время выполнения заказа
-		$exTime = $this->getExecutionTime($date, $products);
+		$exTime = $this->getExecutionTime($date, $productsCount);
 		
 		//Сохраняем заказ в БД     	
      	//Сохраняем сам заказ   
@@ -36,7 +36,7 @@ class FrontOffice{
 		
      	//Сохраняем его блоки     	
      	$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
-     	$tableOrderProduct->newOrderProducts($orderId, $products, -1);     	
+     	$tableOrderProduct->newOrderProducts($orderId, $productsCount, -1);     	
 		
      	//Получаем результат
      	$orderExTime = date('Y-m-d H:i:s', $exTime);
@@ -46,7 +46,7 @@ class FrontOffice{
 		);     	
 	}
 	
-	private function getExecutionTime($date, $products){	
+	private function getExecutionTime($date, $productsCount){	
      	$tableOrder = new Application_Model_DbTable_Order();
      	$tableProduct = new Application_Model_DbTable_Product(); 
 		
@@ -61,8 +61,8 @@ class FrontOffice{
 
      	$times = $tableProduct->getRetunningExecutionProductTime();     
      	for ($i = 1; $i < 4; $i++){
-     		if ($products[$i] > 0){
-     			$exTime += ($times[$i]['ExecutionTime'] * $products[$i] + $times[$i]['RetunningTime']) * 864;
+     		if ($productsCount[$i] > 0){
+     			$exTime += ($times[$i]['ExecutionTime'] * $productsCount[$i] + $times[$i]['RetunningTime']) * 864;
      		}     		
      	}
      	return $exTime;
