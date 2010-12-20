@@ -110,7 +110,7 @@ class Simulation{
 				$modifiedBlock = $block;
 			}else{
 				//не повезло и придется искать место для этого блока
-				$flag1 = TRUE; //флаг, который будет определять нашли ли мы место для этого блока
+				$inserted = false; //флаг, который будет определять нашли ли мы место для этого блока
 				$flag2 = FALSE; //флаг, который определяет очередь блоков с одинаковыми продуктами
 				$i = 0; //счетчик позиции в листе
 				foreach ($list as $sortedBlock){ // foreach 2
@@ -121,20 +121,20 @@ class Simulation{
 						if ($sortedBlock['DateExecution'] + $sortedBlock['Time'] > $block['DateExecution'] + $block['Time']){
 							//запихиваем текущий блок на место отсортированного
 							array_splice($list, $i, 0, $block);
-							$flag1 = FALSE;
+							$inserted = true;
 							break;
 						}
 						$flag2 = TRUE;
 					} else if ($flag2) {
 						//запихиваем текущий блок на место отсортированного
 						array_splice($list, $i, 0, $block);
-						$flag1 = FALSE;
+						$inserted = true;
 						break;
 					}
 					$i++;										
 				}//end of foreach 2
 				//добавить элемент было некуда, запихиваем в конец очереди
-				if ($flag1)
+				if (!$inserted)
 					$list[] = $block;
 			}			
 		}//end of foreach 1
