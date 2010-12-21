@@ -23,6 +23,6 @@
 			);
 			
 			//клевая штука, не знал, что инсерт что-то возвращает
-			return $tableCustomer->insert($customerData);
+			return $this->insert($customerData);
 		}
 	}

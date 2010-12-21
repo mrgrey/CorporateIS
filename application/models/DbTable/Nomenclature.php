@@ -62,7 +62,7 @@
 	    		$where = $nom['ID'];
 	    		$this-> update($data, $where);
 	    	}
-	    	$tableRaw = new Application_Model_DbTable_Raw();	    	
+	    		    	
 	    	/*for ($i = 0; $i < 12; $i++) {
 	    		$data = array(
 	    			'RealCount'	=> $material
@@ -70,7 +70,7 @@
 	    			$where['ID = ?'] = ???????????
 	    		$this->update($data, $where);
 	    	}*/
-	    	return $tableRaw->addRaw($materials);
+	    	return TRUE;
 	    }
 	}
 	

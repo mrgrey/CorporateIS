@@ -40,10 +40,11 @@ class FrontOffice{
 		
      	//Получаем результат
      	$orderExTime = date('Y-m-d H:i:s', $exTime);
+     	
      	return array(
      		'OrderId' 			=> $orderId, 
      		'ExecutionTime'		=> $orderExTime
-		);     	
+		);   	
 	}
 	
 	private function getExecutionTime($date, $productsCount){	
@@ -53,8 +54,8 @@ class FrontOffice{
      	//Определяем время старта    	
      	$previousOrder = $tableOrder->getLastAcceptedOrder();
 		
-		$previousOrderExTime = $previousOrder
-			? $previousOrder['ExecutionTime']
+     	$previousOrderExTime = $previousOrder
+			? $previousOrder['DateExecution']
 			: $date + 3 * 86400;
 		
 		$exTime = max($previousOrderExTime, $date);
@@ -150,7 +151,7 @@ class FrontOffice{
 		$tableOrderProduct = new Application_Model_DbTable_OrderProduct();
 		
 		//Если стартовал, то отмена не возможна
-		if ($tableOrderProduct->isOrderStarted($orderId)){
+		if ($tableOrderProduct->isOrderStarted($orderId))
 			return false;
 			
 		//Изменяем статус заказа

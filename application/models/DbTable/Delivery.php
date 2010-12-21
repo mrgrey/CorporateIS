@@ -13,6 +13,7 @@
 			$stmt = $db->query($select);
 			$deliveries = $stmt->fetchAll();
 			$n = count($deliveries);
+			$sum = 0;
 			foreach ($deliveries as $delivery){
 				$realDate = ($delivery['RealDate'] != 0)
 					? $delivery['RealDate']
@@ -46,6 +47,21 @@
 			);			
 			$where['ID = ?'] = $deliveryId;			
 			return $this->update($data, $where);
+		}
+		
+		/**
+		 * 
+		 * ѕровер€ем была ли поставка на прошлой неделе
+		 * @param int $date
+		 */
+		public function wasLastWeekDelivery($date){			
+			$select = $this->select()
+				->from($this->_name)
+				->where('Date = ?', $date - 345600)
+				->where('RealDate > 0')
+				;
+			$stmt = $this->fetchAll($select);			
+			return count($stmt) > 0;			
 		}
 				
 	}

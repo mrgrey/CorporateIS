@@ -23,15 +23,16 @@
 		 * @param mixed $products
 		 */
 		public function spendRaw($products){
-			$tableRawRequment = new Application_Model_DbTable_RawRequiment();
-			$rawRequiments = $tableRawRequment->getRequiments();			
+			$db = $this->getDefaultAdapter();
+			$select = $db->select()->from('RawRequiment')->where('RawCount > 0');
+			$rawRequiments = $db->query($select)->fetchAll();
 			foreach ($rawRequiments as $requiments) $count[$requiments['RawID']] += $requiments['RawCount'] * $products[$requiments['ProductID']];
 			$select = $this->select();
 			foreach ($this->fetchAll($select) as $row) {
 				$data = array('Count' => $row['Count'] - $count[$row['ID']]);
 				$where['ID = ?'] = $row['ID'];
 				$this->update($data, $where);
-			}			
+			}		
 			return TRUE;
 		}
 

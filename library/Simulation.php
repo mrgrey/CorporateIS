@@ -38,6 +38,9 @@ class Simulation{
 		//Получаем массив невыполненных блоков
 		$ordProds = $tableOrderProduct->getWaitingList();
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
+		//Проверяем была ли поставка материалов в прошлую неделю
+		$tableDelivery = new Application_Model_DbTable_Delivery();
+		$wasLastWeekDelivery = $tableDelivery->wasLastWeekDelivery($date);
 		//Т.к. поставка происходит раз в 7 дней спустя 3 дня после подачи заявки, то небоходимо эмулировать 10 дней 
 		for ($i = 1; $i < 11; $i++){
 			//Создаем план
@@ -49,9 +52,13 @@ class Simulation{
 			foreach ($list as $block){
 				if ($time > 0){
 					//Считаем количество продуктов
-					if ($i > 3)
-						$products[$block['ProductID']] += $block['Count'];
-					
+					if ($wasLastWeekDelivery){
+						if ($i > 3)
+							$products[$block['ProductID']] += $block['Count'];
+					}else{
+						if ($i < 8)
+							$products[$block['ProductID']] += $block['Count'];
+					}
 					$time -= $block['Count'] * $block['ExecutionTime'];
 					
 					if ($block['ProductID'] != $prevProductId)
@@ -77,10 +84,13 @@ class Simulation{
 				: $tempList;
 		}
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
-		$shoppingList = $tableRawRequiments->getShoppingList($products);
+		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
+		$sigmaT = $tableDelivery->getSigmaT();
+    	$sigmaN = $tableNomenclature->getSigmaN();
+		$shoppingList = $tableRawRequiments->getShoppingList($products, $sigmaN, $sigmaT);
 		
-		$tableDelivery = new Application_Model_DbTable_Delivery();
-		$tableDelivery->newDelivery($date + 300, $shoppingList);
+		
+		//$tableDelivery->newDelivery($date + 259200, $shoppingList);
 		
 		return $shoppingList;
 	}
@@ -159,10 +169,11 @@ class Simulation{
 		$date = strtotime($date);
 		
 		$tableDelivery = new Application_Model_DbTable_Delivery();
-		$tableDelivery->setDelivery($date, $deliveryId);
-		
+		$tableDelivery->setDelivery($date, $deliveryId);		
 		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
-		return $tableNomenclature->updateDeliveryNomenclature($deliveryId, $materials);			
+		$tableNomenclature->updateDeliveryNomenclature($deliveryId, $materials);
+		$tableRaw = new Application_Model_DbTable_Raw();
+		return $tableRaw->addRaw($materials);	
 	}
 	
 	/**
@@ -181,7 +192,7 @@ class Simulation{
 		//Сортировка вставками (Insertion sort) — Сложность алгоритма: O(n2); определяем где текущий элемент должен находиться в упорядоченном списке и вставляем его туда
 		//Собираю список
 		$list = $this->getPlan($ordProds);		
-		
+	
 		//Из получившегося списка составить план на 1 день
 		//проверяем сколько продуктов можно изготовить из имеющихся в наличии материалов
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
@@ -191,12 +202,12 @@ class Simulation{
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
 		$time = 86400; //счетчик времени
 		$manufacturedProducts = array_fill(1, 3, 0);  //счетчик произведенных товаров
-			
+		
 		foreach ($list as $block){
 			//Определяем необходимость перенастройки оборудования
 			if($block['ProductID'] != $prevProductId)
-				$time -= $block['RetunningTime']
-							
+				$time -= $block['RetunningTime'];
+						
 			//Определяем сколько товаров из блока возможно выполнить			
 			$count = min($availableProducts[$block['ProductID']], $block['Count']);
 				
@@ -209,29 +220,31 @@ class Simulation{
 			$count = ($count * $block['ExecutionTime'] > $time)
 				? floor($time / $block['ExecutionTime'])
 				: $count;			
+			if ($count > 0){
+				//Обновляем статус блока на выполненный путем присваивания даты
+				$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
 				
-			//Обновляем статус блока на выполненный путем присваивания даты
-			$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
-			
-			//Создаем новый блок, если текущий не модет быть выполнен полностью
-			if ($count != $block['Count'])
-				$tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
+				//Создаем новый блок, если текущий не модет быть выполнен полностью
+				if ($count != $block['Count'])
+					$tableOrderProduct->newOrderProduct($block['OrderID'], $block['ProductID'], 0, $block['Count'] - $count, $modifier);
+					
+				//Считаем остаток времени
+				$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
+				$prevProductId = $block['ProductID'];
 				
-			//Считаем остаток времени
-			$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];
-			$prevProductId = $block['ProductID'];
-			
-			//Рассчитываем результаты
-			$manufacturedProducts['ProductId'] += $count;
-			$plan[] = array(
-				'demandId'  => $block['OrderID'],
-				'productId' => $block['ProductID'], 
-				'count'     => $count
-			);
+				//Рассчитываем результаты
+				$manufacturedProducts['ProductId'] += $count;
+				$plan[] = array(
+					'demandId'  => $block['OrderID'],
+					'productId' => $block['ProductID'], 
+					'count'     => $count
+				);
+			}
 		}	
 		//Убираем потраченное сырье из БД
 		$tableRaw = new Application_Model_DbTable_Raw();
 		$tableRaw->spendRaw($manufacturedProducts);
+		
 		
 		//Добавляем возможный простой оборудования
 		if ($time != 0) {

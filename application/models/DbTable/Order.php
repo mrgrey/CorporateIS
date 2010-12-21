@@ -26,7 +26,8 @@
  				->from($this->_name)
  				->where('OrderTypeID > 1')
  				->order('ID DESC')
-				->limit(1);
+				->limit(1)
+				;
 				
      		$stmt = $db->query($select);
      		return $stmt->fetch();
@@ -43,11 +44,10 @@
 			$orderData = array(
 	     		'CustomerID' 		=> $customerId,
 	     		'OrderTypeID'		=> 1,
-	     		'TimeRegistration'	=> $date,
-	     		'TimeExecution'		=> $exTime
+	     		'DateRegistration'	=> $date,
+	     		'DateExecution'		=> $exTime
 	     	);
-	     	$result = $this->insert($orderData);
-	     	return $result;
+	     	return $this->insert($orderData);
 		}
 		
 		/**

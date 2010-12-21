@@ -45,16 +45,20 @@
     	 * 
     	 * Определяет количество материалов, необходимов для производства переданных продуктов, с учетом отклонений
     	 * @param unknown_type $products
+    	 * @param unknown_type $sigmaN
+    	 * @param unknown_type $sigmaT
     	 */
-    	public function getShoppingList($products){
-    		$requiments = $this->getRequiments();
-    		$tableNomenclature = new Application_Model_DbTable_Nomenclature();
-    		$tableDelivery = new Application_Model_DbTable_Delivery();
-    		$sigmaT = $tableDelivery->getSigmaT();
-    		$sigmaN = $tableNomenclature->getSigmaN();
-    		$k = 1 + $sigmaN + $sigmaT;
+    	public function getShoppingList($products, $sigmaN, $sigmaT){
+    		$db = $this->getDefaultAdapter();
+			$select = $db->select()->from('RawRequiment')->where('RawCount > 0');
+			$requiments = $db->query($select)->fetchAll();   		
+    		
     		foreach ($requiments as $row){
-    			$result[$raw['RawID']] += $k * $products[$row['ProductID']] * $row['RawCount'];
+    			$k = 1 + $sigmaN[$row['RawID']] + $sigmaT;
+    			$result[$row['RawID']] += $k * $products[$row['ProductID']] * $row['RawCount'];
+    		}
+    		for ($i = 1; $i < 13; $i++){
+    			$result[$i] = round($result[$i]);
     		}
     		return $result;
     	}
