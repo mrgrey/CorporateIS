@@ -90,7 +90,8 @@ class Simulation{
 		$shoppingList = $tableRawRequiments->getShoppingList($products, $sigmaN, $sigmaT);
 		
 		
-		//$tableDelivery->newDelivery($date + 259200, $shoppingList);
+		$tableDelivery->newDelivery($date + 259200, $shoppingList);
+		
 		
 		return $shoppingList;
 	}
@@ -125,7 +126,7 @@ class Simulation{
 				$inserted = false; //флаг, который будет определять нашли ли мы место для этого блока
 				$flag2 = FALSE; //флаг, который определяет очередь блоков с одинаковыми продуктами
 				$i = 0; //счетчик позиции в листе
-				$list = array();
+				//$list = array();
 				foreach ($list as $sortedBlock){ // foreach 2
 					//Если блоки со схожим продуктом уже есть в очереди, то текущий блок надо поставить следом за ними,
 					//при этом следует учесть, что текущий блок не должен производиться более одного дня
