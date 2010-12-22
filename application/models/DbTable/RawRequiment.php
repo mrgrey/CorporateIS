@@ -24,12 +24,7 @@
     			;
     		$result = $db->query($select);
     		$rowset = $result->fetchAll();
-    		//Я хз как по-другому написать=(
-    		$count = array(
-    			1 => 9999,
-    			2 => 9999,
-    			3 => 9999
-     			);
+    		$count = array_fill(1, 3, 9999);
     		foreach ($rowset as $row) $count[$row['ProductID']] = min($count[$row['ProductID']], floor($row['Count']/$row['RawCount']));    		
     		return $count;
     	}

@@ -134,7 +134,7 @@ class Simulation{
 						//проверяем на то, что отсортированный блок должен быть выполнен позже текущего
 						if ($sortedBlock['DateExecution'] + $sortedBlock['Time'] > $block['DateExecution'] + $block['Time']){
 							//запихиваем текущий блок на место отсортированного
-							array_splice($list, $i, 0, $block);
+							array_splice($list, $i, 0, array($block));
 							$inserted = true;
 							break;
 						}
@@ -153,9 +153,8 @@ class Simulation{
 					$list[] = $block;
 			}			
 		}//end of foreach 1
-		/*if ($modifiedBlock)
+		if ($modifiedBlock)
 			$list = array_merge(array($modifiedBlock), $list);
-			*/
 		return $list;
 	}
 	
