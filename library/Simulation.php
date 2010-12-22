@@ -141,7 +141,8 @@ class Simulation{
 						$flag2 = TRUE;
 					} else if ($flag2) {
 						//запихиваем текущий блок на место отсортированного
-						array_splice($list, $i, 0, $block);
+						array_splice($list, $i, 0, array($block));
+						//$list = array_merge(array_slice($list, 0, $i-1),array($block),array_slice($list, $i)); 
 						$inserted = true;
 						break;
 					}
@@ -152,9 +153,9 @@ class Simulation{
 					$list[] = $block;
 			}			
 		}//end of foreach 1
-		if ($modifiedBlock)
+		/*if ($modifiedBlock)
 			$list = array_merge(array($modifiedBlock), $list);
-			
+			*/
 		return $list;
 	}
 	
@@ -205,9 +206,7 @@ class Simulation{
 		$manufacturedProducts = array_fill(1, 3, 0);  //счетчик произведенных товаров
 		
 		foreach ($list as $block){
-			//Определяем необходимость перенастройки оборудования
-			if($block['ProductID'] != $prevProductId)
-				$time -= $block['RetunningTime'];
+			
 						
 			//Определяем сколько товаров из блока возможно выполнить			
 			$count = min($availableProducts[$block['ProductID']], $block['Count']);
@@ -218,10 +217,12 @@ class Simulation{
 				$count = floor(($time + $block['Modifier']) / $block['ExecutionTime']);
 				$modifier = ($time + $block['Modifier']) % $block['ExecutionTime'];
 			}
-			$count = ($count * $block['ExecutionTime'] > $time)
-				? floor($time / $block['ExecutionTime'])
-				: $count;			
+					
 			if ($count > 0){
+				//Определяем необходимость перенастройки оборудования
+				if($block['ProductID'] != $prevProductId)
+					$time -= $block['RetunningTime'];
+					
 				//Обновляем статус блока на выполненный путем присваивания даты
 				$tableOrderProduct->setOrderProduct($block['ID'], $date + 86400 - $time, $count, 0);
 				
@@ -234,7 +235,7 @@ class Simulation{
 				$prevProductId = $block['ProductID'];
 				
 				//Рассчитываем результаты
-				$manufacturedProducts['ProductId'] += $count;
+				$manufacturedProducts[$block['ProductID']] += $count;
 				$plan[] = array(
 					'demandId'  => $block['OrderID'],
 					'productId' => $block['ProductID'], 
@@ -248,7 +249,7 @@ class Simulation{
 		
 		
 		//Добавляем возможный простой оборудования
-		if ($time != 0) {
+		if ($time > 0) {
 			$plan[] = array(
 				'demandId'  => 0,
 				'productId' => 4, 
@@ -256,7 +257,7 @@ class Simulation{
 			);
 		}
 		
-		return $plan;			
+		return $manufacturedProducts;			
 	}
 	
 		
