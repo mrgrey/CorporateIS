@@ -257,7 +257,7 @@ class Simulation{
 			);
 		}
 		
-		return $manufacturedProducts;			
+		return $plan;			
 	}
 	
 		
