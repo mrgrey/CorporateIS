@@ -63,7 +63,7 @@ class FrontOffice{
      	$times = $tableProduct->getRetunningExecutionProductTime();     
      	for ($i = 1; $i < 4; $i++){
      		if ($productsCount[$i] > 0){
-     			$exTime += ($times[$i]['ExecutionTime'] * $productsCount[$i] + $times[$i]['RetunningTime']) * 864;
+     			$exTime += ($times[$i]['ExecutionTime'] * $productsCount[$i] + $times[$i]['RetunningTime']);
      		}     		
      	}
      	return $exTime;
@@ -138,6 +138,8 @@ class FrontOffice{
 		
 		return true;
 	}
+	
+	
 	
 	/**
 	 * 

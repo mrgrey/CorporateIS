@@ -256,7 +256,14 @@ class Simulation{
 			);
 		}
 		
-		return $plan;			
+		$id=1;
+		foreach($plan as $item){
+			$result[$id]=$item;
+			$id++;
+		}			
+		
+		return $result;
+		//return $plan;				
 	}
 	
 		

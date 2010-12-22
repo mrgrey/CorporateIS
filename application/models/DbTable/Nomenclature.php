@@ -57,9 +57,9 @@
 	    	$noms = $db->query($select)->fetchAll();
 	    	foreach ($noms as $nom) {
 	    		$data = array(
-	    			'RealCount'	=> $materials[$nom['RawID'] + 1]
+	    			'RealCount'	=> $materials[$nom['RawID'] - 1]
 	    			);
-	    		$where = $nom['ID'];
+	    		$where['ID = ?'] = $nom['ID'];
 	    		$this-> update($data, $where);
 	    	}
 	    		    	

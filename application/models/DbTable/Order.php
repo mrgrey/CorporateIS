@@ -72,9 +72,10 @@
 		 * @param unknown_type $exTime
 		 */
 		public function setExecutionTime($orderId, $exTime){
-			$where['ID = ?'] = $orderId;
+						
+			$where['ID = ?']= $orderId;
 			$data = array(
-				'TimeExecution' => $exTime
+				'DateExecution' => (int)$exTime
 			);
 			
 			return $this->update($data, $where);
