@@ -102,6 +102,7 @@ class Simulation{
 	 * @param unknown_type $ordProds
 	 */
 	private function getPlan($ordProds){
+		$list = array();
 		foreach ($ordProds as $block){ //foreach 1
 			/*Каждый $block имеет следующую структуру:
 			 * array(
@@ -120,7 +121,7 @@ class Simulation{
 			//сразу проверяем блок на наличие модификатора, что будет означать, 
 			//что на нем остановилось производство в прошлый день и его надо запихать первым в новый план
 			if ($block['Modifier'] != 0){
-				$modifiedBlock = $block;
+				$modifiedBlock[] = $block;
 			}else{
 				//не повезло и придется искать место для этого блока
 				$inserted = false; //флаг, который будет определять нашли ли мы место для этого блока
@@ -148,13 +149,32 @@ class Simulation{
 					}
 					$i++;										
 				}//end of foreach 2
-				//добавить элемент было некуда, запихиваем в конец очереди
-				if (!$inserted)
-					$list[] = $block;
+				//пробуем вставить блок в начало очереди, если его дата выполнения самая близкая
+				if (!$inserted){
+					$i = 0;
+					foreach ($list as $sortedBlock) {
+						if ($list[0]['DateExecution'] + $list[0]['Time'] > $block['DateExecution'] + $block['Time']){
+							//запихиваем текущий блок на место отсортированного
+							array_splice($list, $i, 0, array($block));
+							$inserted = true;							
+							break;
+						}
+						$i++;
+					}
+					if (!$inserted){
+						//добавить элемент было некуда, запихиваем в конец очереди
+						$list[] = $block;
+					}
+				}
+					
 			}			
 		}//end of foreach 1
-		if ($modifiedBlock)
-			$list = array_merge(array($modifiedBlock), $list);
+		if ($modifiedBlock){
+			foreach ($modifiedBlock as $block) 
+				$list = array_merge(array($block), $list);
+		}
+			
+			
 		return $list;
 	}
 	
@@ -208,8 +228,8 @@ class Simulation{
 			
 						
 			//Определяем сколько товаров из блока возможно выполнить			
-			$count = min($availableProducts[$block['ProductID']], $block['Count']);
-				
+			//$count = min($availableProducts[$block['ProductID']], $block['Count']);
+			$count = $block['Count'];	
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
 			if ($count * $block['ExecutionTime'] > $time + $block['Modifier']){
