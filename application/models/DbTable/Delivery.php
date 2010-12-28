@@ -54,18 +54,26 @@
 		 * ѕровер€ем была ли поставка на прошлой неделе
 		 * @param int $date
 		 */
-		public function wasLastWeekDelivery($date){			
-			$select = $this->select()
+		public function wasLastWeekDelivery($date){
+			$db = Zend_Db_Table_Abstract::getDefaultAdapter();
+			$select = $db->select()->from('OrderProduct')->order('Date DESC')->limit(1);
+			$stmt = $db->query($select);
+			$res = $stmt->fetchAll();
+			if (count($res) > 0)
+				if ($res[0]['Date'] > $date - 86400) 
+					return true;
+			return false;			
+			/*$select = $this->select()
 				->from($this->_name)
 				->where('Date = ?', $date - 345600)
 				->where('RealDate > 0')
 				;
 			$stmt = $this->fetchAll($select);
 			if 	(count($stmt) > 0){
-				if ($stmt['Date'] == 0) return false;
+				if ($stmt[0]['Date'] == 0) return false;
 				return true;
 			}		
-			return false;			
+			return false;*/			
 		}
 				
 	}

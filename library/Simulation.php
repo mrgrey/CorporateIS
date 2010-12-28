@@ -51,20 +51,39 @@ class Simulation{
 			unset($tempList);
 			foreach ($list as $block){
 				if ($time > 0){
-					//Считаем количество продуктов
-					if ($wasLastWeekDelivery){
-						if ($i > 3)
-							$products[$block['ProductID']] += $block['Count'];
-					}else{
-						if ($i < 8)
-							$products[$block['ProductID']] += $block['Count'];
+					$count = $block['Count'];
+					$modifier = 0;
+					if($block['ProductID'] != $prevProductId)
+						$xtime = $time - $block['RetunningTime'];
+					if ($count * $block['ExecutionTime'] > $xtime + $block['Modifier']){
+						$count = floor(($xtime + $block['Modifier']) / $block['ExecutionTime']);
+						$modifier = ($xtime + $block['Modifier']) % $block['ExecutionTime'];
 					}
-					$time -= $block['Count'] * $block['ExecutionTime'];
-					
-					if ($block['ProductID'] != $prevProductId)
-						$time -= $block['RetunningTime'];
-					
-					$prevProductId = $block['ProductID'];
+					if ($count > 0){
+						//Определяем необходимость перенастройки оборудования
+						if($block['ProductID'] != $prevProductId)
+							$time -= $block['RetunningTime'];
+						//Считаем количество продуктов
+						if ($wasLastWeekDelivery){
+							if ($i > 3)
+								$products[$block['ProductID']] += $count;
+						}else{
+							if ($i < 8)
+								$products[$block['ProductID']] += $count;
+						}
+						$time = $time - $count * $block['ExecutionTime'] + $block['Modifier'];					
+						$prevProductId = $block['ProductID'];
+						if ($count != $block['Count']){
+							$block['Count'] -= $count;
+							$block['Modifier'] = $modifier;
+							$tempList[] = $block;
+						}
+						$plan[] = array(
+							'demandId'  => $block['OrderID'],
+							'productId' => $block['ProductID'], 
+							'count'     => $count
+						);
+					}			
 				}else{
 					//Определяем первый блок следующего дня
 					if (isset($nextDayFirstBlock) && ($block['DateExecution'] + $block['Time'] < $nextDayFirstBlock['DateExecution'] + $nextDayFirstBlock['Time'])){
@@ -232,11 +251,12 @@ class Simulation{
 			//$count = $block['Count'];	
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
-			if ($count * $block['ExecutionTime'] > $time + $block['Modifier']){
-				$count = floor(($time + $block['Modifier']) / $block['ExecutionTime']);
-				$modifier = ($time + $block['Modifier']) % $block['ExecutionTime'];
-			}
-					
+			if($block['ProductID'] != $prevProductId)
+					$xtime = $time - $block['RetunningTime'];
+			if ($count * $block['ExecutionTime'] > $xtime + $block['Modifier']){
+				$count = floor(($xtime + $block['Modifier']) / $block['ExecutionTime']);
+				$modifier = ($xtime + $block['Modifier']) % $block['ExecutionTime'];
+			}					
 			if ($count > 0){
 				//Определяем необходимость перенастройки оборудования
 				if($block['ProductID'] != $prevProductId)
@@ -282,8 +302,8 @@ class Simulation{
 			$id++;
 		}			
 		
-		//return $result;
-		return $plan;				
+		return $result;
+		//return $plan;				
 	}
 	
 		
