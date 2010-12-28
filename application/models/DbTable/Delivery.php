@@ -60,8 +60,12 @@
 				->where('Date = ?', $date - 345600)
 				->where('RealDate > 0')
 				;
-			$stmt = $this->fetchAll($select);			
-			return count($stmt) > 0;			
+			$stmt = $this->fetchAll($select);
+			if 	(count($stmt) > 0){
+				if ($stmt['Date'] == 0) return false;
+				return true;
+			}		
+			return false;			
 		}
 				
 	}

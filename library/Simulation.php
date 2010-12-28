@@ -228,8 +228,8 @@ class Simulation{
 			
 						
 			//Определяем сколько товаров из блока возможно выполнить			
-			//$count = min($availableProducts[$block['ProductID']], $block['Count']);
-			$count = $block['Count'];	
+			$count = min($availableProducts[$block['ProductID']], $block['Count']);
+			//$count = $block['Count'];	
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
 			if ($count * $block['ExecutionTime'] > $time + $block['Modifier']){
@@ -282,8 +282,8 @@ class Simulation{
 			$id++;
 		}			
 		
-		return $result;
-		//return $plan;				
+		//return $result;
+		return $plan;				
 	}
 	
 		
