@@ -233,24 +233,24 @@ class Simulation{
 		//Собираю список
 		$list = $this->getPlan($ordProds);		
 	
-		//Из получившегося списка составить план на 1 день
-		//проверяем сколько продуктов можно изготовить из имеющихся в наличии материалов
+		//Из получившегося списка составить план на 1 день		
 		$tableRawRequiments = new Application_Model_DbTable_RawRequiment();
-		$availableProducts = $tableRawRequiments->getAvaibleProductCount();
+		$tableRaw = new Application_Model_DbTable_Raw();
 		
 		//Получаем данные о продукте в последнем блоке предыдущего дня
 		$prevProductId = $tableOrderProduct->getLastBlockProductId();
 		$time = 86400; //счетчик времени
 		$manufacturedProducts = array_fill(1, 3, 0);  //счетчик произведенных товаров
 		
-		foreach ($list as $block){
-			
-						
+		foreach ($list as $block){		
+			//проверяем сколько продуктов можно изготовить из имеющихся в наличии материалов	
+			$availableProducts = $tableRawRequiments->getAvaibleProductCount();			
 			//Определяем сколько товаров из блока возможно выполнить			
 			$count = min($availableProducts[$block['ProductID']], $block['Count']);
 			//$count = $block['Count'];	
 			//Определяем сколько товаров из возможных возможно выполнить в текущих сутках
 			$modifier = 0;
+			$xtime = $time;
 			if($block['ProductID'] != $prevProductId)
 					$xtime = $time - $block['RetunningTime'];
 			if ($count * $block['ExecutionTime'] > $xtime + $block['Modifier']){
@@ -275,6 +275,10 @@ class Simulation{
 				
 				//Рассчитываем результаты
 				$manufacturedProducts[$block['ProductID']] += $count;
+				//Убираем потраченное сырье из БД		
+				$tableRaw->spendRaw($manufacturedProducts);
+				$manufacturedProducts = array_fill(1, 3, 0);
+				
 				$plan[] = array(
 					'demandId'  => $block['OrderID'],
 					'productId' => $block['ProductID'], 
@@ -282,9 +286,7 @@ class Simulation{
 				);
 			}
 		}	
-		//Убираем потраченное сырье из БД
-		$tableRaw = new Application_Model_DbTable_Raw();
-		$tableRaw->spendRaw($manufacturedProducts);
+		
 		
 		
 		//Добавляем возможный простой оборудования
